@@ -1561,6 +1561,11 @@ with st.expander("2. History & Lifestyle", expanded=False):
 
     if st.session_state.sex == "Female (여)":
         st.markdown("**Women's Health**")
+        # Ensure valid values before rendering widgets
+        if st.session_state.mens_duration < 1:
+            st.session_state.mens_duration = 5
+        if st.session_state.mens_cycle < 1:
+            st.session_state.mens_cycle = 28
         w1, w2, w3, w4 = st.columns(4)
         with w1: st.selectbox("Cycle", ["Regular", "Irregular", "Menopause"], key="mens_regular")
         with w2: st.number_input("Duration (Days)", 1, 10, key="mens_duration")

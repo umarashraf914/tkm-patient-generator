@@ -1720,95 +1720,204 @@ def generate_patient():
     try:
         model = genai.GenerativeModel('gemini-flash-latest') 
     except:
-        st.error("Check API Key (API 키를 확인하세요).")
+        st.error("API 키 오류. Streamlit Secrets에서 확인하세요.")
         return
 
     # --- STEP 4: GET RICH KOREAN DESCRIPTIONS FOR LLM ---
     # Fetch Korean text instead of sending raw numbers
-    fever_desc = get_desc("fever_sev", st.session_state.fever_sev) or f"Level {st.session_state.fever_sev}"
-    chills_desc = get_desc("chills_sev", st.session_state.chills_sev) or f"Level {st.session_state.chills_sev}"
-    snot_desc = get_desc("snot_sev", st.session_state.snot_sev) or f"Level {st.session_state.snot_sev}"
-    cough_desc = get_desc("cough_sev", st.session_state.cough_sev) or f"Level {st.session_state.cough_sev}"
+    fever_desc = get_desc("fever_sev", st.session_state.fever_sev) or f"레벨 {st.session_state.fever_sev}"
+    chills_desc = get_desc("chills_sev", st.session_state.chills_sev) or f"레벨 {st.session_state.chills_sev}"
+    snot_desc = get_desc("snot_sev", st.session_state.snot_sev) or f"레벨 {st.session_state.snot_sev}"
+    cough_desc = get_desc("cough_sev", st.session_state.cough_sev) or f"레벨 {st.session_state.cough_sev}"
     
     # Rhinitis descriptions
-    sneeze_desc = get_desc("rhinitis_sneeze", st.session_state.sneeze_sev) or f"Level {st.session_state.sneeze_sev}"
-    nose_block_desc = get_desc("rhinitis_block", st.session_state.nose_block_sev) or f"Level {st.session_state.nose_block_sev}"
-    nose_itch_desc = get_desc("rhinitis_itch", st.session_state.nose_itch_sev) or f"Level {st.session_state.nose_itch_sev}"
-    rhinitis_snot_desc = get_desc("rhinitis_snot_sev", st.session_state.snot_sev) or f"Level {st.session_state.snot_sev}"
+    sneeze_desc = get_desc("rhinitis_sneeze", st.session_state.sneeze_sev) or f"레벨 {st.session_state.sneeze_sev}"
+    nose_block_desc = get_desc("rhinitis_block", st.session_state.nose_block_sev) or f"레벨 {st.session_state.nose_block_sev}"
+    nose_itch_desc = get_desc("rhinitis_itch", st.session_state.nose_itch_sev) or f"레벨 {st.session_state.nose_itch_sev}"
+    rhinitis_snot_desc = get_desc("rhinitis_snot_sev", st.session_state.snot_sev) or f"레벨 {st.session_state.snot_sev}"
     
     # Other descriptors from data_mappings
     fatigue_desc = get_desc("fatigue", st.session_state.get("fatigue_sev", 2)) or "보통"
-    sweat_desc = get_desc("sweat_amt", 3) or "적당히 흘림"  # Default middle value
+    sweat_desc = get_desc("sweat_amt", 3) or "적당히 흘림"
     sleep_desc = get_desc("sleep_quality", 3) or "보통"
 
-    # PROMPT (UPDATED WITH KOREAN DESCRIPTIONS)
+    # ===========================================
+    # KOREAN-FIRST PROMPT (의사 관점 진료기록)
+    # Primary output: Korean clinical documentation
+    # Secondary: English SOAP (supplementary)
+    # ===========================================
     system_prompt = f"""
-    You are an expert TKM data generator.
+    당신은 한의 임상 가상환자 시나리오 생성 전문가입니다.
     
-    ### TASK
-    Generate a patient scenario using strict **Bilingual Clinical Items**.
-    Use the Korean symptom descriptions provided to create natural, clinically accurate narratives.
+    ## 역할
+    한의사의 관점에서 진료기록부 형식으로 가상환자 시나리오를 생성하세요.
+    ❌ 환자 시점 (예: "저는 열이 나고...")이 아닌
+    ✅ 의사 시점 (예: "상기 환자는 발열을 호소하며...")으로 작성하세요.
     
-    ### 1. BIO & HISTORY (Safety Enforced)
-    - {st.session_state.age} {st.session_state.sex} ({st.session_state.job}).
-    - Onset: {st.session_state.onset}, Course: {st.session_state.course}.
-    - Vitals: BP {st.session_state.sbp}/{st.session_state.dbp}, Pulse {st.session_state.pulse_rate}, Temp {st.session_state.temp}°C.
-    - Women: Cycle {st.session_state.mens_cycle}d, Dur {st.session_state.mens_duration}d, Pain {st.session_state.mens_pain_score}/10.
+    ## 환자 정보 (Patient Data)
     
-    ### 2. EXCRETION & PHYSICAL (Page 18/53/17/83)
-    - Diet: {st.session_state.diet_freq} meals/day, {st.session_state.diet_regular}, Water {st.session_state.water_intake}.
-    - Stool: {st.session_state.stool_color}, {st.session_state.stool_form}. Urine: {st.session_state.urine_color}.
-    - Physical: Edema={st.session_state.edema}, Bruising={st.session_state.bruising}, Limb Weak={st.session_state.limb_weakness}, Vision Blackout={st.session_state.vision_blackout}.
-    - Sensory (0-5 Scale): Tinnitus={st.session_state.tinnitus_sev}/5, Hearing={st.session_state.hearing_sev}/5, Dizziness={st.session_state.dizziness_sev}/5.
-    - Mental: Memory={st.session_state.memory}, Motivation={st.session_state.motivation}, Coping={st.session_state.stress_coping}.
-
-    ### 3. DISEASE SPECIFICS WITH KOREAN DESCRIPTIONS (CRITICAL)
-    - Disease: {st.session_state.disease} (Pattern/Rx: {selected_pattern})
+    ### 1. 인구학적정보 및 활력징후
+    - 나이/성별: {st.session_state.age}세 {st.session_state.sex}
+    - 직업: {st.session_state.job}
+    - 발현시점: {st.session_state.onset}
+    - 경과: {st.session_state.course}
+    - 활력징후: BP {st.session_state.sbp}/{st.session_state.dbp} mmHg, 맥박 {st.session_state.pulse_rate}회/분, 체온 {st.session_state.temp}°C
     
-    **감기 (Cold) Symptoms:**
-    - 발열 (Fever): {fever_desc} (Level {st.session_state.fever_sev}/5)
-    - 오한 (Chills): {chills_desc} (Level {st.session_state.chills_sev}/5)
-    - 콧물 (Runny Nose): {snot_desc} (Level {st.session_state.snot_sev}/5)
-    - 기침 (Cough): {cough_desc} (Level {st.session_state.cough_sev}/5)
+    ### 2. 병력 및 생활습관
+    - 현병력: {st.session_state.history_conditions}
+    - 약물력: {st.session_state.meds_specific}
+    - 가족력: {st.session_state.family_hx}
+    - 음주: {st.session_state.social_alcohol_freq}
+    - 흡연: {st.session_state.social_smoke_daily}개피/일
+    - 운동강도: {st.session_state.social_exercise_int}
     
-    **비염 (Rhinitis) Symptoms:**
-    - 재채기 (Sneezing): {sneeze_desc} (Level {st.session_state.sneeze_sev}/5)
-    - 코막힘 (Nasal Block): {nose_block_desc} (Level {st.session_state.nose_block_sev}/5)
-    - 코가려움 (Nasal Itch): {nose_itch_desc} (Level {st.session_state.nose_itch_sev}/5)
-    - 콧물 양 (Snot Amount): {rhinitis_snot_desc} (Level {st.session_state.snot_sev}/5)
-    - 콧물 성상 (Snot Type): {st.session_state.get('snot_type', 'N/A')}
+    ### 3. 배설 및 식사
+    - 식사횟수: {st.session_state.diet_freq}회/일, {st.session_state.diet_regular}
+    - 음수량: {st.session_state.water_intake}
+    - 대변: {st.session_state.stool_freq}, {st.session_state.stool_color}, {st.session_state.stool_form}
+    - 소변: {st.session_state.urine_color}, 주간 {st.session_state.urine_freq_day}회, 야간 {st.session_state.urine_freq_night}회
     
-    **요통 (Back Pain) Nature:** {st.session_state.get('pain_nature', [])}
-
-    ### 4. TKM SIGNS
-    - Pulse: {st.session_state.pulse_depth}, {st.session_state.pulse_strength}, {st.session_state.pulse_smooth}.
-    - Tongue: {st.session_state.tongue_color}, {st.session_state.tongue_coat_color}.
-
-    ### OUTPUT FORMAT (JSON)
+    ### 4. 수면, 땀, 한열
+    - 수면: {st.session_state.sleep_hours}시간, {st.session_state.sleep_depth}, 기상시 {st.session_state.sleep_waking_state}
+    - 입면장애: {st.session_state.insomnia_onset}, 중도각성: {st.session_state.insomnia_maintain}
+    - 땀: {st.session_state.sweat_amt}, {st.session_state.sweat_area}
+    - 한열경향: {st.session_state.cold_heat_pref}
+    - 음료온도선호: {st.session_state.drink_temp}
+    
+    ### 5. 정신상태 및 신체검진
+    - 기억력: {st.session_state.memory}, 의욕: {st.session_state.motivation}
+    - 스트레스대처력: {st.session_state.stress_coping}
+    - 부종: {st.session_state.edema}, 멍듦: {st.session_state.bruising}
+    - 사지무력감: {st.session_state.limb_weakness}
+    - 피부건조도: {st.session_state.skin_dry}, 가려움: {st.session_state.skin_itch}
+    - 이명강도: {st.session_state.tinnitus_sev}/5, 난청: {st.session_state.hearing_sev}/5
+    - 어지러움: {st.session_state.dizziness_sev}/5
+    - 면색: {st.session_state.face_color}
+    
+    ### 6. 맥진 및 설진
+    - 맥진: {st.session_state.pulse_depth}, {st.session_state.pulse_width}, {st.session_state.pulse_strength}, {st.session_state.pulse_smooth}
+    - 설질: {st.session_state.tongue_color}, {st.session_state.tongue_size}
+    - 설태: {st.session_state.tongue_coat_color}, {st.session_state.tongue_coat_thick}
+    
+    ### 7. 주소증 및 변증
+    - 질환명: {st.session_state.disease}
+    - 변증/처방: {selected_pattern}
+    
+    **감기 증상 (해당시):**
+    - 발열: {fever_desc} ({st.session_state.fever_sev}/5)
+    - 오한: {chills_desc} ({st.session_state.chills_sev}/5)
+    - 콧물: {snot_desc} ({st.session_state.snot_sev}/5)
+    - 기침: {cough_desc} ({st.session_state.cough_sev}/5)
+    - 기타: {st.session_state.cold_symptoms_spec}
+    
+    **비염 증상 (해당시):**
+    - 재채기: {sneeze_desc} ({st.session_state.sneeze_sev}/5)
+    - 코막힘: {nose_block_desc} ({st.session_state.nose_block_sev}/5)
+    - 코가려움: {nose_itch_desc} ({st.session_state.nose_itch_sev}/5)
+    - 콧물양: {rhinitis_snot_desc} ({st.session_state.snot_sev}/5)
+    - 콧물성상: {st.session_state.get('snot_type', 'N/A')}
+    
+    **요통 증상 (해당시):**
+    - 통증강도: {st.session_state.pain_sev}/10
+    - 통증양상: {st.session_state.get('pain_nature', [])}
+    
+    **소화불량 증상 (해당시):**
+    - 복만/복통: {st.session_state.pain_sev}/5
+    - 증상: {st.session_state.get('dyspepsia_spec', [])}
+    
+    ## 출력 형식 (JSON)
+    반드시 아래 형식으로 JSON을 생성하세요:
+    
     {{
-      "summary": "1-line summary including pattern diagnosis",
-      "soap_english": "SOAP Note with detailed symptom descriptions...",
-      "narrative_korean": "환자 진술 (Use the Korean descriptions provided above. Make it natural and conversational, reflecting the patient's personality and symptom severity)...",
-      "reasoning": "Diagnosis reasoning based on Pattern Rules. Example: '맑은 콧물이 줄줄 흐르고 (Clear watery discharge) -> 소청룡탕 (Minor Blue Dragon) indication'. Include severity-based logic."
+      "요약": "환자 요약 (예: 45세 남성, 풍한형 감기, 오한중 발열경 호소)",
+      
+      "초진기록": "한의사 관점의 상세 초진기록. 반드시 다음 형식으로 작성:
+        
+        【환자정보】
+        상기 환자는 XX세 XX 환자로 [직업] 종사자이다.
+        
+        【주소증】
+        [발현시점]부터 [주요증상]을 주소로 내원하였다.
+        
+        【현병력】
+        [증상의 발생, 경과, 양상을 상세히 기술]
+        
+        【과거력/가족력】
+        [해당사항 기술]
+        
+        【계통적 문진】
+        - 식욕/소화: ...
+        - 대변: ...
+        - 소변: ...
+        - 수면: ...
+        - 한열: ...
+        - 땀: ...
+        - 기타: ...
+        
+        【망진소견】
+        - 면색: ...
+        - 설진: ...
+        
+        【맥진소견】
+        ...
+        
+        【변증】
+        상기 소견을 종합하면 [변증명]으로 판단된다.
+        
+        【치법】
+        [치료법 설명]
+        
+        【처방】
+        [처방명] 투여를 고려한다.",
+      
+      "변증근거": "변증 선정의 근거를 단계별로 설명.
+        예시:
+        1. 오한이 발열보다 심하다 (惡寒重, 發熱輕) → 풍한(風寒) 시사
+        2. 맑고 묽은 콧물 (淸涕) → 한증(寒證) 시사  
+        3. 무한(無汗) → 표실증(表實證) 시사
+        4. 맥부긴(脈浮緊), 설태박백(舌苔薄白) → 풍한표증 확인
+        ∴ 풍한형(風寒型) 감기로 변증하고 [처방명] 투여",
+      
+      "soap_english": "Brief English SOAP note for international reference (supplementary only):
+        S: Chief complaint and history
+        O: Vital signs, physical exam, tongue/pulse
+        A: TKM pattern diagnosis
+        P: Treatment plan and prescription"
     }}
+    
+    ## 중요 지침
+    1. 모든 주요 출력은 한국어로 작성 (English SOAP은 보조용)
+    2. 의사 관점으로 작성 (환자 시점 ❌)
+    3. 한의학 전문용어 적극 사용 (예: 惡寒, 發熱, 無汗, 脈浮緊 등)
+    4. 변증과 처방의 논리적 연결 명확히 기술
+    5. 임상진료지침 (Pages 15-19, 21-23) 기준 준수
     """
 
-    with st.spinner('Synthesizing...'):
+    with st.spinner('가상환자 시나리오 생성 중...'):
         try:
             response = model.generate_content(system_prompt, generation_config={"response_mime_type": "application/json"})
             data = json.loads(response.text)
-            st.success("✅ Generated (생성 완료)")
-            st.subheader(data['summary'])
-            t1, t2, t3 = st.tabs(["🇺🇸 SOAP Note (영문)", "🇰🇷 Narrative (환자 진술)", "🧠 Reasoning (변증 논리)"])
-            with t1: st.markdown(data['soap_english'])
-            with t2: st.markdown(data['narrative_korean'])
-            with t3: st.info(data['reasoning'])
+            st.success("✅ 생성 완료")
+            st.subheader(data.get('요약', data.get('summary', '요약 없음')))
+            
+            # Korean-first tabs
+            t1, t2, t3 = st.tabs(["📋 초진기록 (Primary)", "🧠 변증근거", "🇺🇸 SOAP (Supplementary)"])
+            with t1: 
+                st.markdown("### 한의사 진료기록")
+                st.markdown(data.get('초진기록', data.get('narrative_korean', '기록 없음')))
+            with t2: 
+                st.markdown("### 변증 논리 및 근거")
+                st.info(data.get('변증근거', data.get('reasoning', '근거 없음')))
+            with t3: 
+                st.markdown("### English SOAP Note (Reference)")
+                st.caption("영문 SOAP 노트는 국제 참조용입니다.")
+                st.markdown(data.get('soap_english', 'No English SOAP available'))
 
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"오류 발생: {e}")
 
 # --- GENERATE BUTTON (Outside the function) ---
 st.markdown("---")
-if st.button("🩺 Generate Scenario (가상환자 생성)", type="primary"):
+if st.button("🩺 가상환자 시나리오 생성", type="primary"):
     generate_patient()
 

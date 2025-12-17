@@ -6,14 +6,17 @@ import random
 # --- STEP 1: IMPORT DATA MAPPINGS ---
 from data_mappings import get_desc, get_weights, CLINICAL_DATA
 
-# --- 🔒 HARDCODED API KEY ---
-# Paste your key inside the quotes below.
-API_KEY = "AIzaSyDjxTfjQ94uzUaXjihcikyuArRHEXETg_0"
+import streamlit as st
+import google.generativeai as genai
 
-if API_KEY == "PASTE_YOUR_API_KEY_HERE" or not API_KEY:
-    st.error("⚠️ Please open app.py and paste your API Key in Line 7!")
-else:
-    genai.configure(api_key=API_KEY)
+# --- 🔐 SECURE API KEY HANDLING ---
+try:
+    # This looks for the key in Streamlit's secret storage
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    genai.configure(api_key=api_key)
+except FileNotFoundError:
+    st.error("⚠️ API Key not found. Please set it in Streamlit Secrets.")
+    st.stop() # Stop the app if no key is found
 
 # --- CONFIGURATION ---
 st.set_page_config(page_title="TKM Clinical Scenario Generator", layout="wide")
@@ -1107,12 +1110,11 @@ def apply_constraint_rules():
 # --- ROBUST RANDOMIZER (UPDATED WITH WEIGHTED LOGIC) ---
 def randomize_inputs():
     # ===========================================
-    # 1. DEMOGRAPHICS
-
+    # 1. DEMOGRAPHICS (인구학적정보)
     # ===========================================
     st.session_state.age = random.randint(20, 80)
     st.session_state.sex = random.choice(["Male (남)", "Female (여)"])
-    st.session_state.job = random.choice(["Student", "Office", "Labor", "Housewife"])
+    st.session_state.job = random.choice(["Student (학생)", "Office (사무직)", "Labor (현장직)", "Housewife (가사)"])
     st.session_state.height = random.randint(150, 190)
     st.session_state.weight = random.randint(45, 100)
     
@@ -1129,84 +1131,84 @@ def randomize_inputs():
     st.session_state.resp = random.randint(12, 24)
     
     # ===========================================
-    # 3. HISTORY & ONSET
+    # 3. HISTORY & ONSET (병력 및 경과)
     # ===========================================
-    st.session_state.onset = random.choice(["1 day ago", "2-3 days ago", "1 week ago", "Chronic (>3mo)"])
-    st.session_state.course = random.choice(["Worsening (악화)", "Improving (호전)", "Fluctuating (비슷/오르내림)"])
-    st.session_state.history_conditions = random.sample(["HTN", "DM", "Lipid", "Insomnia"], k=random.randint(0, 2))
-    st.session_state.meds_specific = random.sample(["HTN Meds", "DM Meds", "Sleep Meds", "Mood Meds"], k=random.randint(0, 2))
-    st.session_state.family_hx = random.sample(["HTN", "DM", "Cancer", "Heart Disease"], k=random.randint(0, 2))
+    st.session_state.onset = random.choice(["1 day ago (1일 전)", "2-3 days ago (2-3일 전)", "1 week ago (1주 전)", "Chronic >3mo (만성 3개월 이상)"])
+    st.session_state.course = random.choice(["Worsening (악화중)", "Improving (호전중)", "Fluctuating (비슷/오르내림)"])
+    st.session_state.history_conditions = random.sample(["HTN (고혈압)", "DM (당뇨)", "Lipid (이상지질혈증)", "Insomnia (불면증)"], k=random.randint(0, 2))
+    st.session_state.meds_specific = random.sample(["HTN Meds (혈압약)", "DM Meds (당뇨약)", "Sleep Meds (수면제)", "Mood Meds (항우울제/항불안제)"], k=random.randint(0, 2))
+    st.session_state.family_hx = random.sample(["HTN (고혈압)", "DM (당뇨)", "Cancer (암)", "Heart Disease (심장병)"], k=random.randint(0, 2))
     
-    # Social History
-    st.session_state.social_alcohol_freq = random.choice(["None", "Week", "Daily"])
-    st.session_state.social_alcohol_amt = round(random.uniform(0, 5), 1) if st.session_state.social_alcohol_freq != "None" else 0.0
+    # Social History (사회력)
+    st.session_state.social_alcohol_freq = random.choice(["None (비음주)", "Week (주간)", "Daily (매일)"])
+    st.session_state.social_alcohol_amt = round(random.uniform(0, 5), 1) if st.session_state.social_alcohol_freq != "None (비음주)" else 0.0
     st.session_state.social_smoke_daily = round(random.uniform(0, 20), 1)
-    st.session_state.social_exercise_int = random.choice(["Low", "Medium", "High"])
+    st.session_state.social_exercise_int = random.choice(["Low (저)", "Medium (중)", "High (고)"])
     st.session_state.social_exercise_time = random.randint(0, 120)
     
     # ===========================================
-    # 4. WOMEN'S HEALTH (Only relevant if Female)
+    # 4. WOMEN'S HEALTH (여성력 - Only relevant if Female)
     # ===========================================
     if st.session_state.sex == "Female (여)":
         st.session_state.mens_cycle = random.randint(21, 35)
-        st.session_state.mens_regular = random.choice(["Regular", "Irregular", "Menopause"])
+        st.session_state.mens_regular = random.choice(["Regular (규칙)", "Irregular (불규칙)", "Menopause (폐경)"])
         st.session_state.mens_amt = random.choice(["Light (적음)", "Normal (보통)", "Heavy (많음)"])
         st.session_state.mens_clot = random.choice([True, False])
-        st.session_state.mens_color = random.choice(["Pale", "Red", "Dark"])
+        st.session_state.mens_color = random.choice(["Pale (연함)", "Red (적색)", "Dark (흑자색)"])
         st.session_state.mens_duration = random.randint(3, 7)
         st.session_state.mens_pain_score = random.randint(0, 10)
     
     # ===========================================
-    # 5. EXCRETION & DIET
+    # 5. EXCRETION & DIET (배설 및 식사)
     # ===========================================
-    st.session_state.diet_speed = random.choice(["Fast (<10min)", "Normal (20min)", "Slow (>30min)"])
-    st.session_state.appetite = random.choice(["None", "Low", "Normal", "High"])
+    st.session_state.diet_speed = random.choice(["Fast <10min (빠름)", "Normal 20min (보통)", "Slow >30min (느림)"])
+    st.session_state.appetite = random.choice(["None (없음)", "Low (저하)", "Normal (보통)", "High (항진)"])
     st.session_state.diet_freq = random.choice([1, 2, 3, 4])
-    st.session_state.diet_regular = random.choice(["Regular (규칙)", "Irregular (불규칙)"])
-    st.session_state.water_intake = random.choice(["<0.5L", "0.5-1L", "1-2L", ">2L"])
+    st.session_state.diet_regular = random.choice(["Regular (규칙적)", "Irregular (불규칙)"])
+    st.session_state.water_intake = random.choice(["<0.5L (0.5L 미만)", "0.5-1L", "1-2L", ">2L (2L 이상)"])
     
-    # Stool
-    st.session_state.stool_freq = random.choice(["1/day", "2-3/day", "Constipation"])
-    st.session_state.stool_form = random.choice(["Normal", "Loose", "Hard"])
+    # Stool (대변)
+    st.session_state.stool_freq = random.choice(["1/day (1회/일)", "2-3/day (2-3회/일)", "Constipation (변비)"])
+    st.session_state.stool_form = random.choice(["Normal (보통)", "Loose (묽음/연변)", "Hard (굳음/경변)"])
     st.session_state.stool_discomfort = random.choice([True, False])
     st.session_state.stool_color = random.choice(["Yellow (황색)", "Brown (황갈색)", "Black (흑색)", "Green (녹색)"])
     
-    # Urine
+    # Urine (소변)
     st.session_state.urine_freq_day = random.randint(3, 12)
     st.session_state.urine_freq_night = random.randint(0, 4)
     st.session_state.urine_stream = random.choice(["Normal (정상)", "Weak (약함)", "Intermittent (끊김)"])
     st.session_state.urine_residual = random.choice([True, False])
     st.session_state.urine_incontinence = random.choice([True, False])
-    st.session_state.urine_color = random.choice(["Clear (맑음)", "Yellow (황색)", "Reddish (적색)"])
+    st.session_state.urine_color = random.choice(["Clear (맑음)", "Yellow (황색)", "Reddish (적색/혈뇨)"])
     
     # ===========================================
-    # 6. SLEEP, SWEAT, COLD/HEAT
+    # 6. SLEEP, SWEAT, COLD/HEAT (수면, 땀, 한열)
     # ===========================================
     st.session_state.sleep_hours = random.randint(4, 10)
-    st.session_state.sleep_waking_state = random.choice(["Refreshed", "Tired", "Heavy"])
+    st.session_state.sleep_waking_state = random.choice(["Refreshed (개운함)", "Tired (피곤함)", "Heavy (무거움)"])
     st.session_state.sleep_depth = random.choice(["Deep (깊음)", "Shallow/Light (얕음)"])
     st.session_state.insomnia_onset = random.choice([True, False])
     st.session_state.insomnia_maintain = random.choice([True, False])
     st.session_state.insomnia_reentry = random.choice([True, False])
     st.session_state.dreams = random.choice(["Rare (거의 없음)", "Sometimes (가끔)", "Frequent (자주)", "Nightmares (악몽)"])
     
-    st.session_state.sweat_amt = random.choice(["None (무한)", "Normal (보통)", "Excessive (다한)"])
-    st.session_state.sweat_area = random.choice(["General", "Head", "Night"])
-    st.session_state.sweat_feeling = random.choice(["Refreshed", "Tired/Cold", "Hot"])
+    st.session_state.sweat_amt = random.choice(["None (무한 無汗)", "Normal (보통)", "Excessive (다한 多汗)"])
+    st.session_state.sweat_area = random.choice(["General (전신)", "Head (두부)", "Night (야간/도한)"])
+    st.session_state.sweat_feeling = random.choice(["Refreshed (상쾌)", "Tired/Cold (피곤/냉함)", "Hot (열감)"])
     
-    st.session_state.cold_heat_pref = random.choice(["Cold Sens", "Balanced", "Heat Sens"])
-    st.session_state.drink_temp = random.choice(["Icy", "Warm", "Hot"])
+    st.session_state.cold_heat_pref = random.choice(["Cold Sens (오한/추위탐)", "Balanced (보통)", "Heat Sens (열감/더위탐)"])
+    st.session_state.drink_temp = random.choice(["Icy (냉수)", "Warm (온수)", "Hot (열수)"])
     
     # ===========================================
-    # 7. MENTAL, SENSORY & INSPECTION
+    # 7. MENTAL, SENSORY & INSPECTION (정신, 감각 및 신체검진)
     # ===========================================
-    # Personality sliders (1-5)
+    # Personality sliders (성격 1-5)
     st.session_state.personality_speed = random.randint(1, 5)
     st.session_state.personality_io = random.randint(1, 5)
     st.session_state.personality_soft = random.randint(1, 5)
     st.session_state.personality_static = random.randint(1, 5)
     
-    # Emotions (1-5)
+    # Emotions (감정 1-5)
     st.session_state.emot_anger = random.randint(1, 5)
     st.session_state.emot_depress = random.randint(1, 5)
     st.session_state.emot_anxiety = random.randint(1, 5)
@@ -1219,24 +1221,24 @@ def randomize_inputs():
     st.session_state.voice_vol = random.choice(["Soft (작음)", "Normal (보통)", "Loud (큼)"])
     st.session_state.voice_vol_slider = random.randint(1, 3)
     
-    # Mental State
+    # Mental State (정신상태)
     st.session_state.memory = random.choice(["Good (좋음)", "Forgetful (건망)", "Bad (나쁨)"])
     st.session_state.motivation = random.choice(["High (높음)", "Normal (보통)", "Low (낮음)", "Apathetic (무기력)"])
     st.session_state.stress_coping = random.choice(["Good (좋음)", "Average (보통)", "Poor (나쁨)"])
     
-    # Physical Inspection
-    st.session_state.edema = random.choice(["None (없음)", "Face", "Legs", "General"])
+    # Physical Inspection (신체검진)
+    st.session_state.edema = random.choice(["None (없음)", "Face (안면)", "Legs (하지)", "General (전신)"])
     st.session_state.bruising = random.choice(["Normal (정상)", "Easy (잘듦)", "Spontaneous (절로 생김)"])
     st.session_state.limb_weakness = random.choice([True, False])
     st.session_state.vision_blackout = random.choice([True, False])
     
     st.session_state.body_solidity = random.choice(["Soft (물렁)", "Normal (보통)", "Solid (단단)"])
-    st.session_state.face_color = random.choice(["Normal", "Pale", "Red", "Yellow", "Dark"])
-    st.session_state.face_gloss = random.choice(["Dull (칙칙)", "Normal", "Shiny (윤기)"])
+    st.session_state.face_color = random.choice(["Normal (정상)", "Pale (창백)", "Red (홍조)", "Yellow (황달)", "Dark (암색)"])
+    st.session_state.face_gloss = random.choice(["Dull (칙칙)", "Normal (보통)", "Shiny (윤기)"])
     st.session_state.eye_red = random.choice([True, False])
     st.session_state.lip_dry = random.choice([True, False])
     
-    st.session_state.skin_dry = random.choice(["Normal", "Dry (건조)", "Scaly (각질)"])
+    st.session_state.skin_dry = random.choice(["Normal (정상)", "Dry (건조)", "Scaly (각질)"])
     st.session_state.skin_itch = random.choice([True, False])
     
     # Sensory symptoms (0-5 severity) - Page 17-18
@@ -1281,11 +1283,11 @@ def randomize_inputs():
     # ===========================================
     st.session_state.lower_abd_discomfort = random.randint(0, 5)
     st.session_state.abd_pain_sev = random.randint(0, 5)
-    st.session_state.abd_pain_type = random.choice(["None", "Dull (둔함)", "Sharp (날카로움)", "Cramping (쥐어짜는)"])
+    st.session_state.abd_pain_type = random.choice(["None (없음)", "Dull (둔통)", "Sharp (예리통)", "Cramping (산통/경련통)"])
     st.session_state.abd_tenderness = random.choice([True, False])
     st.session_state.nausea_sev = random.randint(0, 5)
     st.session_state.belching = random.randint(0, 5)
-    st.session_state.belching_smell = random.choice(["None (없음)", "Sour (신맛)", "Foul (부패취)"])
+    st.session_state.belching_smell = random.choice(["None (없음)", "Sour (신맛/산취)", "Foul (부패취)"])
     st.session_state.food_stag_sev = random.randint(0, 5)
     st.session_state.abd_muscle_tension = random.choice([True, False])
     st.session_state.abd_mass = random.choice([True, False])
@@ -1295,8 +1297,8 @@ def randomize_inputs():
     # ===========================================
     # NEW: Cold/Heat Tendency (한열경향) - Page 19
     # ===========================================
-    st.session_state.cold_heat_body = random.choice(["Cold (한)", "Balanced (보통)", "Hot (열)"])
-    st.session_state.cold_heat_distribution = random.choice(["Even (균등)", "Upper Hot (상열)", "Lower Cold (하한)", "Upper Hot Lower Cold (상열하한)"])
+    st.session_state.cold_heat_body = random.choice(["Cold (한 寒)", "Balanced (보통)", "Hot (열 熱)"])
+    st.session_state.cold_heat_distribution = random.choice(["Even (균등)", "Upper Hot (상열 上熱)", "Lower Cold (하한 下寒)", "Upper Hot Lower Cold (상열하한 上熱下寒)"])
     st.session_state.cold_sensitivity = random.randint(1, 5)
     st.session_state.heat_sensitivity = random.randint(1, 5)
     
@@ -1304,7 +1306,7 @@ def randomize_inputs():
     # NEW: General Condition (전신상태) - Page 19
     # ===========================================
     st.session_state.physical_strength = random.choice(["Weak (허약)", "Normal (보통)", "Strong (강건)"])
-    st.session_state.condition_bad_area = random.sample(["Head", "Stomach", "Back", "Limbs"], k=random.randint(0, 2))
+    st.session_state.condition_bad_area = random.sample(["Head (두부)", "Stomach (위장)", "Back (요배부)", "Limbs (사지)"], k=random.randint(0, 2))
     
     # ===========================================
     # NEW: Sweat details (땀) - Page 19
@@ -1314,7 +1316,7 @@ def randomize_inputs():
     # ===========================================
     # NEW: Mental State details (정신상태) - Page 19
     # ===========================================
-    st.session_state.mental_clarity = random.choice(["Clear (맑음)", "Foggy (흐릿)", "Confused (혼란)"])
+    st.session_state.mental_clarity = random.choice(["Clear (맑음/청명)", "Foggy (흐릿/혼미)", "Confused (혼란)"])
     st.session_state.mood_swing = random.choice(["Stable (안정)", "Mild (약간)", "Severe (심함)"])
     st.session_state.emot_startle = random.randint(1, 5)
     
@@ -1338,20 +1340,20 @@ def randomize_inputs():
     st.session_state.knee_sev = random.randint(0, 5)
     
     # ===========================================
-    # 8. PULSE & TONGUE
+    # 8. PULSE & TONGUE (맥진 및 설진)
     # ===========================================
-    st.session_state.pulse_depth = random.choice(["Floating", "Middle", "Sinking"])
-    st.session_state.pulse_width = random.choice(["Thin", "Medium", "Wide"])
-    st.session_state.pulse_length = random.choice(["Short", "Medium", "Long"])
-    st.session_state.pulse_strength = random.choice(["Weak", "Moderate", "Strong"])
-    st.session_state.pulse_smooth = random.choice(["Smooth (활)", "Normal", "Rough (삽)"])
-    st.session_state.pulse_tension = random.choice(["Soft (유)", "Normal", "Tense (긴)"])
+    st.session_state.pulse_depth = random.choice(["Floating (부맥)", "Middle (중맥)", "Sinking (침맥)"])
+    st.session_state.pulse_width = random.choice(["Thin (세맥)", "Medium (대맥)", "Wide (홍맥)"])
+    st.session_state.pulse_length = random.choice(["Short (단맥)", "Medium (장맥)", "Long (장맥)"])
+    st.session_state.pulse_strength = random.choice(["Weak (무력)", "Moderate (유력)", "Strong (강력)"])
+    st.session_state.pulse_smooth = random.choice(["Smooth (활맥)", "Normal (완맥)", "Rough (삽맥)"])
+    st.session_state.pulse_tension = random.choice(["Soft (유맥)", "Normal (완맥)", "Tense (긴맥)"])
     
-    st.session_state.tongue_color = random.choice(["Pale", "Pale Red", "Red", "Dark Red"])
-    st.session_state.tongue_size = random.choice(["Small (소)", "Normal (정상)", "Enlarged (대)"])
-    st.session_state.tongue_coat_color = random.choice(["White", "Yellow", "Grey"])
-    st.session_state.tongue_coat_thick = random.choice(["Thin", "Thick", "Greasy"])
-    st.session_state.tongue_coat_particle = random.choice(["Dry (조)", "Fine (윤)", "Wet (활)"])
+    st.session_state.tongue_color = random.choice(["Pale (담백)", "Pale Red (담홍)", "Red (홍설)", "Dark Red (강홍/자설)"])
+    st.session_state.tongue_size = random.choice(["Small (소)", "Normal (정상)", "Enlarged (대/태)"])
+    st.session_state.tongue_coat_color = random.choice(["White (백태)", "Yellow (황태)", "Grey (회태)"])
+    st.session_state.tongue_coat_thick = random.choice(["Thin (박태)", "Thick (후태)", "Greasy (니태)"])
+    st.session_state.tongue_coat_particle = random.choice(["Dry (조태)", "Fine (윤태)", "Wet (활태)"])
     st.session_state.tongue_marks = random.choice([True, False])
     
     # ===========================================
@@ -1367,10 +1369,10 @@ def randomize_inputs():
     st.session_state.cold_hands_feet = random.choice([True, False])
     
     # ===========================================
-    # 10. DISEASE & PATTERN SELECTION (Page 23)
+    # 10. DISEASE & PATTERN SELECTION (질환 및 변증 선택 - Page 23)
     # Updated to match official 한열허실 pattern classification
     # ===========================================
-    disease_opts = ["Common Cold (감기)", "Allergic Rhinitis (비염)", "Back Pain (요통)", "Functional Dyspepsia (소화불량)"]
+    disease_opts = ["Common Cold (감기/급성상기도감염)", "Allergic Rhinitis (알레르기비염)", "Back Pain (요통)", "Functional Dyspepsia (기능성소화불량)"]
     st.session_state.disease = random.choice(disease_opts)
     
     # Determine pattern key based on disease selection (Page 23 compliant)
@@ -1398,9 +1400,9 @@ def randomize_inputs():
         pattern_key = DISEASE_PATTERNS["소화불량"]["patterns"][st.session_state.pattern_idx]["id"]
     
     # ===========================================
-    # 11. DISEASE-SPECIFIC SYMPTOMS (WEIGHTED)
+    # 11. DISEASE-SPECIFIC SYMPTOMS (질환별 증상 - WEIGHTED)
     # ===========================================
-    # Randomize TKM Examination findings (Page 17)
+    # Randomize TKM Examination findings (한의사 진찰소견 - Page 17)
     st.session_state.exam_lung_sound = random.choice([None, "Normal (정상)", "Wheeze (천명)", "Crackle (수포음)"])
     st.session_state.exam_throat = random.choice([None, "Normal (정상)", "Red (발적)", "Swollen (부종)"])
     st.session_state.exam_tonsil = random.choice([None, "Normal (정상)", "Enlarged (비대)", "Exudate (삼출물)"])
@@ -1412,8 +1414,8 @@ def randomize_inputs():
         st.session_state.snot_sev = get_weighted_level("snot_sev", pattern_key)
         st.session_state.cough_sev = get_weighted_level("cough_sev", pattern_key)
         
-        # Cold specific symptoms
-        cold_opts = ["No Sweat (무한)", "Yellow Phlegm (황담)", "White Phlegm (희박담)", "Dry Throat (인후건조)", "Joint Pain (관절통)"]
+        # Cold specific symptoms (감기 특이증상)
+        cold_opts = ["No Sweat (무한 無汗)", "Yellow Phlegm (황담 黃痰)", "White Phlegm (희박담 稀薄白痰)", "Dry Throat (인후건조 咽乾)", "Joint Pain (관절통 骨節疼痛)"]
         st.session_state.cold_symptoms_spec = random.sample(cold_opts, k=random.randint(0, 3))
     
     elif "Rhinitis" in st.session_state.disease:
@@ -1423,10 +1425,10 @@ def randomize_inputs():
         st.session_state.nose_itch_sev = get_weighted_level("rhinitis_itch", pattern_key)
         st.session_state.snot_sev = get_weighted_level("rhinitis_snot_sev", pattern_key)
         
-        # Weighted snot type selection
+        # Weighted snot type selection (콧물 성상)
         snot_type_level = get_weighted_level("rhinitis_snot_type", pattern_key, levels=[1, 2, 3])
-        snot_type_map = {1: "Clear/Watery (맑음/물)", 2: "White/Sticky (희고 끈적)", 3: "Yellow/Thick (누렇고 찐득)"}
-        st.session_state.snot_type = snot_type_map.get(snot_type_level, "Clear/Watery (맑음/물)")
+        snot_type_map = {1: "Clear/Watery (청수양 淸水樣)", 2: "White/Sticky (백점액 白粘)", 3: "Yellow/Thick (황농성 黃膿)"}
+        st.session_state.snot_type = snot_type_map.get(snot_type_level, "Clear/Watery (청수양 淸水樣)")
     
     elif "Back Pain" in st.session_state.disease:
         st.session_state.pain_sev = random.randint(3, 10)
@@ -1434,46 +1436,46 @@ def randomize_inputs():
         st.session_state.pain_back_f = st.session_state.pain_back[0]
         st.session_state.pain_back_i = st.session_state.pain_back[1]
         
-        # Randomize pain nature based on pattern
+        # Randomize pain nature based on pattern (통증 양상)
         pain_opts = [
-            "Moving (유주통) - Phlegm", 
-            "Stabbing (자통) - Blood Stasis", 
-            "Fixed/Cold (한통) - Cold", 
-            "Better w/ Warmth (득온즉감) - Cold", 
-            "Worse at Night (야간통) - Blood Stasis", 
-            "Heavy/Stone-like (중통) - Dampness",
-            "Worse Standing (오래 서있으면 악화) - Qi"
+            "Moving (유주통 遊走痛) - Phlegm/Wind", 
+            "Stabbing (자통 刺痛) - Blood Stasis", 
+            "Fixed/Cold (한통 寒痛) - Cold", 
+            "Better w/ Warmth (득온즉감 得溫則減) - Cold", 
+            "Worse at Night (야간통 夜甚) - Blood Stasis", 
+            "Heavy/Stone-like (중통 重痛) - Dampness",
+            "Worse Standing (구립즉심 久立則甚) - Qi"
         ]
         st.session_state.pain_nature = random.sample(pain_opts, k=random.randint(1, 3))
     
     elif "Dyspepsia" in st.session_state.disease:
         st.session_state.pain_sev = random.randint(1, 5)
         dys_opts = [
-            "Acid Reflux (신물) - Liver/Food", 
-            "Nausea/Vomiting (구역/구토) - Damp-Heat", 
-            "Bitter Taste (구고) - Heat", 
-            "Foul Belching (부패취) - Food Stag", 
-            "Cold Limbs (수족냉증) - Deficiency"
+            "Acid Reflux (신물/탄산 吞酸) - Liver/Food", 
+            "Nausea/Vomiting (구역/구토 惡心嘔吐) - Damp-Heat", 
+            "Bitter Taste (구고 口苦) - Heat", 
+            "Foul Belching (부패취 噯氣腐臭) - Food Stag", 
+            "Cold Limbs (수족냉증 四肢厥冷) - Deficiency"
         ]
         st.session_state.dyspepsia_spec = random.sample(dys_opts, k=random.randint(1, 3))
     
     # ===========================================
-    # 12. APPLY CONSTRAINT RULES (Clinical Logic)
+    # 12. APPLY CONSTRAINT RULES (제약규칙 적용 - Clinical Logic)
     # ===========================================
     apply_constraint_rules()
 
 # --- UI LAYOUT ---
-st.title("🏥 TKM Clinical Scenario Generator")
-st.caption("100% Compliant: Full Variable Set & Logic (Updated Sensory Scales)")
+st.title("🏥 TKM Clinical Scenario Generator (한의 임상시나리오 생성기)")
+st.caption("한의 임상정보 항목 기반 가상환자 생성 시스템 - Pages 15-19, 21-23 Compliant")
 
 with st.sidebar:
-    st.header("⚙️ Controls")
+    st.header("⚙️ Controls (조작)")
     if st.button("🎲 Randomize (랜덤 생성)", type="primary"):
         randomize_inputs()
         st.rerun()
     st.markdown("---")
-    st.header("Diagnosis (진단)")
-    disease_opts = ["Common Cold (감기)", "Allergic Rhinitis (비염)", "Back Pain (요통)", "Functional Dyspepsia (소화불량)"]
+    st.header("Diagnosis (진단명)")
+    disease_opts = ["Common Cold (감기/급성상기도감염)", "Allergic Rhinitis (알레르기비염)", "Back Pain (요통)", "Functional Dyspepsia (기능성소화불량)"]
     
     # Get current disease index for the selectbox
     current_disease_idx = 0
@@ -1486,6 +1488,7 @@ with st.sidebar:
 
     # ===========================================
     # Pattern Selection based on Page 23 classification
+    # 변증유형 선택 (Page 23 변증분류 기준)
     # ===========================================
     patterns = []
     pattern_display = []
@@ -1519,199 +1522,205 @@ with st.sidebar:
     
     selected_pattern = st.selectbox("Pattern/Prescription (변증/처방)", pattern_display, index=st.session_state.pattern_idx)
     
-    # Display KCD code info
+    # Display KCD code info (한국표준질병사인분류)
     if disease_key:
         kcd_info = get_kcd_info(disease_key)
         if kcd_info:
-            st.caption(f"📋 KCD: {kcd_info['main_code']}")
-            with st.expander("KCD Details (Page 21-22)", expanded=False):
-                st.markdown(f"**Main Code:** {kcd_info['main_code']}")
-                st.markdown("**Included:**")
+            st.caption(f"📋 KCD (한국표준질병사인분류): {kcd_info['main_code']}")
+            with st.expander("KCD Details (KCD 상세정보 - Page 21-22)", expanded=False):
+                st.markdown(f"**Main Code (주코드):** {kcd_info['main_code']}")
+                st.markdown("**Included (포함):**")
                 for code, desc in kcd_info['sub_codes'].items():
                     st.markdown(f"- {code}: {desc}")
                 st.markdown("**Excluded (배제):**")
                 for excl in kcd_info['exclusions']:
                     st.markdown(f"- ❌ {excl}")
 
-# --- MAIN FORM ---
+# --- MAIN FORM (주요 입력양식) ---
 
-with st.expander("1. Bio, Vitals & Onset (SAFETY ENFORCED)", expanded=True):
+with st.expander("1. Demographics & Vitals (인구학적정보 및 활력징후) - KTAS Safety Enforced", expanded=True):
     c1, c2, c3 = st.columns(3)
     with c1:
         st.number_input("Age (나이)", 1, 100, key="age")
         st.selectbox("Sex (성별)", ["Male (남)", "Female (여)"], key="sex")
-        st.selectbox("Job (직업)", ["Student", "Office", "Labor", "Housewife"], key="job")
+        st.selectbox("Job (직업)", ["Student (학생)", "Office (사무직)", "Labor (현장직)", "Housewife (가사)"], key="job")
     with c2:
-        st.number_input("SBP (수축기)", 90, 180, key="sbp")
-        st.number_input("Pulse (맥박)", 50, 130, key="pulse_rate")
-        st.number_input("Temp (체온)", 35.0, 40.5, step=0.1, key="temp")
+        st.number_input("SBP (수축기혈압 mmHg)", 90, 180, key="sbp")
+        st.number_input("Pulse (맥박 회/분)", 50, 130, key="pulse_rate")
+        st.number_input("Temp (체온 °C)", 35.0, 40.5, step=0.1, key="temp")
     with c3:
-        st.selectbox("Onset (발현시점)", ["1 day ago", "2-3 days ago", "1 week ago", "Chronic (>3mo)"], key="onset")
-        st.selectbox("Course (경과)", ["Worsening (악화)", "Improving (호전)", "Fluctuating (비슷/오르내림)"], key="course")
+        st.selectbox("Onset (발현시점)", ["1 day ago (1일 전)", "2-3 days ago (2-3일 전)", "1 week ago (1주 전)", "Chronic >3mo (만성 3개월 이상)"], key="onset")
+        st.selectbox("Course (경과)", ["Worsening (악화중)", "Improving (호전중)", "Fluctuating (비슷/오르내림)"], key="course")
 
-with st.expander("2. History & Lifestyle", expanded=False):
+with st.expander("2. Medical History & Lifestyle (병력 및 생활습관)", expanded=False):
     h1, h2 = st.columns(2)
     with h1:
-        st.multiselect("Conditions", ["HTN", "DM", "Lipid", "Insomnia"], key="history_conditions")
-        st.multiselect("Meds", ["HTN Meds", "DM Meds", "Sleep Meds", "Mood Meds"], key="meds_specific")
+        st.multiselect("Conditions (현병력)", ["HTN (고혈압)", "DM (당뇨)", "Lipid (이상지질혈증)", "Insomnia (불면증)"], key="history_conditions")
+        st.multiselect("Meds (약물력)", ["HTN Meds (혈압약)", "DM Meds (당뇨약)", "Sleep Meds (수면제)", "Mood Meds (항우울제/항불안제)"], key="meds_specific")
     with h2:
-        st.selectbox("Alcohol", ["None", "Week", "Daily"], key="social_alcohol_freq")
-        st.number_input("Smoke (Cigs/day)", 0.0, 50.0, key="social_smoke_daily")
-        st.selectbox("Exercise Int", ["Low", "Medium", "High"], key="social_exercise_int")
+        st.selectbox("Alcohol (음주)", ["None (비음주)", "Week (주간)", "Daily (매일)"], key="social_alcohol_freq")
+        st.number_input("Smoke (흡연 개피/일)", 0.0, 50.0, key="social_smoke_daily")
+        st.selectbox("Exercise Intensity (운동 강도)", ["Low (저)", "Medium (중)", "High (고)"], key="social_exercise_int")
 
     if st.session_state.sex == "Female (여)":
-        st.markdown("**Women's Health**")
+        st.markdown("**Women's Health (여성력)**")
         # Ensure valid values before rendering widgets
         if st.session_state.mens_duration < 1:
             st.session_state.mens_duration = 5
         if st.session_state.mens_cycle < 1:
             st.session_state.mens_cycle = 28
         w1, w2, w3, w4 = st.columns(4)
-        with w1: st.selectbox("Cycle", ["Regular", "Irregular", "Menopause"], key="mens_regular")
-        with w2: st.number_input("Duration (Days)", 1, 10, key="mens_duration")
-        with w3: st.slider("Pain Score (0-10)", 0, 10, key="mens_pain_score")
-        with w4: st.selectbox("Color", ["Pale", "Red", "Dark"], key="mens_color")
+        with w1: st.selectbox("Cycle (생리규칙성)", ["Regular (규칙)", "Irregular (불규칙)", "Menopause (폐경)"], key="mens_regular")
+        with w2: st.number_input("Duration (생리기간 일)", 1, 10, key="mens_duration")
+        with w3: st.slider("Pain Score (생리통 0-10)", 0, 10, key="mens_pain_score")
+        with w4: st.selectbox("Color (생리혈 색)", ["Pale (연함)", "Red (적색)", "Dark (흑자색)"], key="mens_color")
 
-with st.expander("3. Excretion & Diet", expanded=False):
+with st.expander("3. Excretion & Diet (배설 및 식사)", expanded=False):
     d1, d2, d3 = st.columns(3)
     with d1:
-        st.number_input("Urine Day", 1, 15, key="urine_freq_day")
-        st.selectbox("Urine Color", ["Clear (맑음)", "Yellow (황색)", "Reddish (적색)"], key="urine_color") 
+        st.number_input("Urine Day (주간뇨 횟수)", 1, 15, key="urine_freq_day")
+        st.selectbox("Urine Color (소변 색)", ["Clear (맑음)", "Yellow (황색)", "Reddish (적색/혈뇨)"], key="urine_color") 
     with d2:
-        st.selectbox("Stool Freq", ["1/day", "2-3/day", "Constipation"], key="stool_freq")
-        st.selectbox("Stool Color", ["Yellow (황색)", "Brown (황갈색)", "Black (흑색)", "Green (녹색)"], key="stool_color")
-        st.selectbox("Form", ["Normal", "Loose", "Hard"], key="stool_form")
+        st.selectbox("Stool Freq (대변 횟수)", ["1/day (1회/일)", "2-3/day (2-3회/일)", "Constipation (변비)"], key="stool_freq")
+        st.selectbox("Stool Color (대변 색)", ["Yellow (황색)", "Brown (황갈색)", "Black (흑색)", "Green (녹색)"], key="stool_color")
+        st.selectbox("Form (대변 굵기/형태)", ["Normal (보통)", "Loose (묽음/연변)", "Hard (굳음/경변)"], key="stool_form")
     with d3:
-        st.selectbox("Meal Freq", [1, 2, 3, 4], key="diet_freq")
-        st.selectbox("Regularity", ["Regular (규칙)", "Irregular (불규칙)"], key="diet_regular")
-        st.selectbox("Water Intake", ["<0.5L", "0.5-1L", "1-2L", ">2L"], key="water_intake")
+        st.selectbox("Meal Freq (식사횟수/일)", [1, 2, 3, 4], key="diet_freq")
+        st.selectbox("Regularity (식사규칙성)", ["Regular (규칙적)", "Irregular (불규칙)"], key="diet_regular")
+        st.selectbox("Water Intake (음수량)", ["<0.5L (0.5L 미만)", "0.5-1L", "1-2L", ">2L (2L 이상)"], key="water_intake")
 
-with st.expander("4. Sleep, Sweat, Cold/Heat", expanded=False):
+with st.expander("4. Sleep, Sweat, Cold/Heat (수면, 땀, 한열경향)", expanded=False):
     s1, s2, s3 = st.columns(3)
     with s1:
-        st.selectbox("Waking", ["Refreshed", "Tired", "Heavy"], key="sleep_waking_state")
-        st.selectbox("Sleep Depth", ["Deep (깊음)", "Shallow/Light (얕음)"], key="sleep_depth")
-        st.checkbox("Insomnia (Start)", key="insomnia_onset")
+        st.selectbox("Waking State (기상시 상쾌도)", ["Refreshed (개운함)", "Tired (피곤함)", "Heavy (무거움)"], key="sleep_waking_state")
+        st.selectbox("Sleep Depth (수면 깊이)", ["Deep (깊음)", "Shallow/Light (얕음)"], key="sleep_depth")
+        st.checkbox("Insomnia - Onset (입면장애)", key="insomnia_onset")
     with s2:
-        st.selectbox("Sweat Area", ["General", "Head", "Night"], key="sweat_area")
-        st.selectbox("Sweat Feel", ["Refreshed", "Tired/Cold", "Hot"], key="sweat_feeling")
+        st.selectbox("Sweat Area (땀나는 부위)", ["General (전신)", "Head (두부)", "Night (야간/도한)"], key="sweat_area")
+        st.selectbox("Sweat Feel (땀 후 느낌)", ["Refreshed (상쾌)", "Tired/Cold (피곤/냉함)", "Hot (열감)"], key="sweat_feeling")
     with s3:
-        st.selectbox("Temp Pref", ["Cold Sens", "Balanced", "Heat Sens"], key="cold_heat_pref")
-        st.selectbox("Drink Temp", ["Icy", "Warm", "Hot"], key="drink_temp")
+        st.selectbox("Temp Pref (한열경향)", ["Cold Sens (오한/추위탐)", "Balanced (보통)", "Heat Sens (열감/더위탐)"], key="cold_heat_pref")
+        st.selectbox("Drink Temp (음료온도 선호)", ["Icy (냉수)", "Warm (온수)", "Hot (열수)"], key="drink_temp")
 
-with st.expander("5. Mental & Inspection", expanded=True):
+with st.expander("5. Mental State & Physical Inspection (정신상태 및 신체검진)", expanded=True):
     m1, m2 = st.columns(2)
     with m1:
-        st.markdown("**Mental State**")
+        st.markdown("**Mental State (정신상태)**")
         st.selectbox("Memory (기억력)", ["Good (좋음)", "Forgetful (건망)", "Bad (나쁨)"], key="memory")
         st.selectbox("Motivation (의욕)", ["High (높음)", "Normal (보통)", "Low (낮음)", "Apathetic (무기력)"], key="motivation")
-        st.selectbox("Stress Coping (대처력)", ["Good (좋음)", "Average (보통)", "Poor (나쁨)"], key="stress_coping")
-        st.slider("Voice Vol", 1, 3, key="voice_vol_slider")
-        st.slider("Speed (완급)", 1, 5, key="personality_speed")
-        st.slider("Anger (노)", 1, 5, key="emot_anger")
-        st.slider("Grief (비)", 1, 5, key="emot_grief")
+        st.selectbox("Stress Coping (스트레스 대처력)", ["Good (좋음)", "Average (보통)", "Poor (나쁨)"], key="stress_coping")
+        st.slider("Voice Vol (성음크기)", 1, 3, key="voice_vol_slider", help="1=작음, 2=보통, 3=큼")
+        st.slider("Speed (성격완급 느긋-급함)", 1, 5, key="personality_speed", help="1=느긋, 5=급함")
+        st.slider("Anger (노 화냄정도)", 1, 5, key="emot_anger", help="1=평온, 5=화 잘냄")
+        st.slider("Grief (비 슬픔정도)", 1, 5, key="emot_grief", help="1=평온, 5=슬픔 많음")
     with m2:
-        st.markdown("**Physical Inspection**")
-        st.selectbox("Edema (부종)", ["None (없음)", "Face", "Legs", "General"], key="edema")
-        st.selectbox("Bruising (멍)", ["Normal (정상)", "Easy (잘듦)", "Spontaneous (절로 생김)"], key="bruising")
+        st.markdown("**Physical Inspection (신체검진)**")
+        st.selectbox("Edema (부종여부)", ["None (없음)", "Face (안면)", "Legs (하지)", "General (전신)"], key="edema")
+        st.selectbox("Bruising (출혈/멍듦)", ["Normal (정상)", "Easy (잘듦)", "Spontaneous (절로 생김)"], key="bruising")
         c_a, c_b = st.columns(2)
-        with c_a: st.checkbox("Limb Weakness (사지무력)", key="limb_weakness")
-        with c_b: st.checkbox("Vision Blackout (눈앞캄캄)", key="vision_blackout")
+        with c_a: st.checkbox("Limb Weakness (사지무력감)", key="limb_weakness")
+        with c_b: st.checkbox("Vision Blackout (눈앞캄캄함)", key="vision_blackout")
         st.markdown("---")
-        st.selectbox("Skin Dryness", ["Normal", "Dry (건조)", "Scaly (각질)"], key="skin_dry")
-        st.checkbox("Skin Itch (가려움)", key="skin_itch")
+        st.selectbox("Skin Dryness (피부 건조도)", ["Normal (정상)", "Dry (건조)", "Scaly (각질)"], key="skin_dry")
+        st.checkbox("Skin Itch (피부 가려움)", key="skin_itch")
         
         # UPDATED: Changed to severity sliders (0-5) per Pages 18, 103
-        st.slider("Tinnitus Severity (이명)", 0, 5, key="tinnitus_sev", 
-                  help="0=None, 1-2=Mild, 3-4=Moderate, 5=Severe")
-        st.slider("Hearing Issue Severity (난청)", 0, 5, key="hearing_sev",
-                  help="0=None, 1-2=Mild, 3-4=Moderate, 5=Severe")
-        st.slider("Dizziness Severity (어지러움)", 0, 5, key="dizziness_sev",
-                  help="0=None, 1-2=Mild, 3-4=Moderate, 5=Severe")
+        st.slider("Tinnitus Severity (이명 강도)", 0, 5, key="tinnitus_sev", 
+                  help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
+        st.slider("Hearing Issue Severity (난청/이롱 강도)", 0, 5, key="hearing_sev",
+                  help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
+        st.slider("Dizziness Severity (어지러움/두훈 강도)", 0, 5, key="dizziness_sev",
+                  help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
         
-        st.selectbox("Face Color", ["Normal", "Pale", "Red", "Yellow", "Dark"], key="face_color")
+        st.selectbox("Face Color (면색/얼굴 색)", ["Normal (정상)", "Pale (창백)", "Red (홍조)", "Yellow (황달)", "Dark (암색)"], key="face_color")
 
-with st.expander("6. Detailed Pulse & Tongue", expanded=True):
+with st.expander("6. Pulse & Tongue Diagnosis (맥진 및 설진)", expanded=True):
     p1, p2 = st.columns(2)
     with p1:
-        st.selectbox("Pulse Depth", ["Floating", "Middle", "Sinking"], key="pulse_depth")
-        st.selectbox("Pulse Width", ["Thin", "Medium", "Wide"], key="pulse_width")
-        st.selectbox("Pulse Strength", ["Weak", "Moderate", "Strong"], key="pulse_strength")
-        st.selectbox("Pulse Smooth", ["Smooth (활)", "Normal", "Rough (삽)"], key="pulse_smooth")
+        st.markdown("**Pulse (맥진)**")
+        st.selectbox("Pulse Depth (맥 부침)", ["Floating (부맥)", "Middle (중맥)", "Sinking (침맥)"], key="pulse_depth")
+        st.selectbox("Pulse Width (맥 대세/폭)", ["Thin (세맥)", "Medium (대맥)", "Wide (홍맥)"], key="pulse_width")
+        st.selectbox("Pulse Strength (맥 유력/무력)", ["Weak (무력)", "Moderate (유력)", "Strong (강력)"], key="pulse_strength")
+        st.selectbox("Pulse Smooth (맥 활삽)", ["Smooth (활맥)", "Normal (완맥)", "Rough (삽맥)"], key="pulse_smooth")
     with p2:
-        st.selectbox("Tongue Color", ["Pale", "Pale Red", "Red", "Dark Red"], key="tongue_color")
-        st.selectbox("Coat Color", ["White", "Yellow", "Grey"], key="tongue_coat_color")
-        st.selectbox("Coat Thickness", ["Thin", "Thick", "Greasy"], key="tongue_coat_thick")
+        st.markdown("**Tongue (설진)**")
+        st.selectbox("Tongue Color (설질 색)", ["Pale (담백)", "Pale Red (담홍)", "Red (홍설)", "Dark Red (강홍/자설)"], key="tongue_color")
+        st.selectbox("Coat Color (설태 색)", ["White (백태)", "Yellow (황태)", "Grey (회태)"], key="tongue_coat_color")
+        st.selectbox("Coat Thickness (설태 두께)", ["Thin (박태)", "Thick (후태)", "Greasy (니태)"], key="tongue_coat_thick")
 
-with st.expander("7. ROS Pain Grid", expanded=False):
-    st.caption("Freq (0-5) / Int (0-10)")
+with st.expander("7. ROS Pain Grid (통증 부위별 Review of Systems)", expanded=False):
+    st.caption("Freq (빈도 0-5) / Int (강도 0-10)")
     cols = st.columns(3)
-    parts = [("Neck", "pain_neck"), ("Back", "pain_back"), ("Knee", "pain_knee"), ("Shldr", "pain_shoulder"), ("Elbow", "pain_elbow"), ("Hand", "pain_hand")]
+    parts = [("Neck (경항부)", "pain_neck"), ("Back (요배부)", "pain_back"), ("Knee (슬부)", "pain_knee"), ("Shldr (견부)", "pain_shoulder"), ("Elbow (주관절)", "pain_elbow"), ("Hand (수부)", "pain_hand")]
     for l, k in parts:
         with cols[0]: st.text(l)
-        with cols[1]: st.number_input(f"{l} F", 0, 5, key=f"{k}_f", label_visibility="collapsed")
-        with cols[2]: st.number_input(f"{l} I", 0, 10, key=f"{k}_i", label_visibility="collapsed")
+        with cols[1]: st.number_input(f"{l} F (빈도)", 0, 5, key=f"{k}_f", label_visibility="collapsed")
+        with cols[2]: st.number_input(f"{l} I (강도)", 0, 10, key=f"{k}_i", label_visibility="collapsed")
         st.session_state[k] = [st.session_state[f"{k}_f"], st.session_state[f"{k}_i"]]
-    st.checkbox("Cold Hands/Feet", key="cold_hands_feet")
+    st.checkbox("Cold Hands/Feet (수족냉증)", key="cold_hands_feet")
 
-# --- SECTION 8: DISEASE SPECIFIC SCALES ---
+# --- SECTION 8: DISEASE SPECIFIC SCALES (주소증별 증상 척도) ---
 st.markdown("---")
-st.subheader("8. Chief Complaint Specifics (주소증 상세)")
+st.subheader("8. Chief Complaint Specifics (주소증 상세 - 변증지표)")
 
 if "Cold" in st.session_state.disease:
+    st.caption("감기환자 변증지표 (Page 15 - 임상진료지침 기준)")
     c1, c2 = st.columns(2)
     with c1:
-        st.slider("Fever Level (발열: 1-5)", 1, 5, key="fever_sev")
-        st.slider("Chills Level (오한: 1-5)", 1, 5, key="chills_sev")
+        st.slider("Fever Level (발열 강도: 1-5)", 1, 5, key="fever_sev", help="1=미열/무열, 5=고열 壯熱")
+        st.slider("Chills Level (오한 강도: 1-5)", 1, 5, key="chills_sev", help="1=경미, 5=惡寒重")
     with c2:
-        st.slider("Runny Nose (콧물)", 1, 5, key="snot_sev")
-        st.slider("Cough (기침)", 1, 5, key="cough_sev")
-    cold_opts = ["No Sweat (무한)", "Yellow Phlegm (황담)", "White Phlegm (희박담)", "Dry Throat (인후건조)", "Joint Pain (관절통)"]
-    st.multiselect("Cold Symptoms (Page 15)", cold_opts, key="cold_symptoms_spec")
+        st.slider("Runny Nose (콧물 양: 1-5)", 1, 5, key="snot_sev", help="1=경미, 5=콧물 줄줄")
+        st.slider("Cough (기침 강도: 1-5)", 1, 5, key="cough_sev", help="1=경미, 5=기침 심함")
+    cold_opts = ["No Sweat (무한 無汗)", "Yellow Phlegm (황담 黃痰)", "White Phlegm (희박담 稀薄白痰)", "Dry Throat (인후건조 咽乾)", "Joint Pain (관절통 骨節疼痛)"]
+    st.multiselect("Cold Symptoms (감기 증상 - Page 15)", cold_opts, key="cold_symptoms_spec")
 
 elif "Rhinitis" in st.session_state.disease:
+    st.caption("알레르기비염 변증지표 (Page 23 - 수체형)")
     r1, r2 = st.columns(2)
     with r1:
-        st.slider("Sneezing (재채기)", 1, 5, key="sneeze_sev")
-        st.slider("Nasal Blockage (코막힘)", 1, 5, key="nose_block_sev")
+        st.slider("Sneezing (재채기 嚏噴)", 1, 5, key="sneeze_sev", help="1=경미, 5=연발성")
+        st.slider("Nasal Blockage (코막힘 鼻塞)", 1, 5, key="nose_block_sev", help="1=경미, 5=완전폐쇄")
     with r2:
-        st.slider("Nasal Itch (코가려움)", 1, 5, key="nose_itch_sev")
-        st.slider("Runny Nose (콧물 양)", 1, 5, key="snot_sev")
+        st.slider("Nasal Itch (코가려움 鼻癢)", 1, 5, key="nose_itch_sev", help="1=경미, 5=심한 가려움")
+        st.slider("Runny Nose (콧물 양 鼻涕)", 1, 5, key="snot_sev", help="1=경미, 5=콧물 줄줄")
     st.selectbox("Snot Type (콧물 성상)", 
-                 ["Clear/Watery (맑음/물)", "White/Sticky (희고 끈적)", "Yellow/Thick (누렇고 찐득)"], 
+                 ["Clear/Watery (청수양 淸水樣)", "White/Sticky (백점액 白粘)", "Yellow/Thick (황농성 黃膿)"], 
                  key="snot_type")
-    st.info(f"Target Prescription: {selected_pattern}")
+    st.info(f"Target Prescription (처방): {selected_pattern}")
 
 elif "Dyspepsia" in st.session_state.disease:
-    st.slider("Bloating/Pain (복만/복통)", 1, 5, key="pain_sev")
+    st.caption("기능성소화불량 변증지표 (Pages 16-17 - 한열허실 팔강변증)")
+    st.slider("Bloating/Pain (복만/복통 강도)", 1, 5, key="pain_sev", help="1=경미, 5=심함")
     dys_opts = [
-        "Acid Reflux (신물) - Liver/Food", 
-        "Nausea/Vomiting (구역/구토) - Damp-Heat", 
-        "Bitter Taste (구고) - Heat", 
-        "Foul Belching (부패취) - Food Stag", 
-        "Cold Limbs (수족냉증) - Deficiency"
+        "Acid Reflux (신물/탄산 吞酸) - Liver/Food", 
+        "Nausea/Vomiting (구역/구토 惡心嘔吐) - Damp-Heat", 
+        "Bitter Taste (구고 口苦) - Heat", 
+        "Foul Belching (부패취 噯氣腐臭) - Food Stag", 
+        "Cold Limbs (수족냉증 四肢厥冷) - Deficiency"
     ]
-    st.multiselect("Dyspepsia Specifics (Page 16/17)", dys_opts, key="dyspepsia_spec")
+    st.multiselect("Dyspepsia Specifics (소화불량 증상 - Page 16/17)", dys_opts, key="dyspepsia_spec")
 
 elif "Back Pain" in st.session_state.disease:
-    st.slider("Pain Intensity (통증 강도)", 1, 10, key="pain_sev")
+    st.caption("요통 변증지표 (Pages 15-16 - 한열허실 팔강변증)")
+    st.slider("Pain Intensity (통증 강도 NRS)", 1, 10, key="pain_sev", help="1=경미, 10=극심 (KTAS: 7 이하 권장)")
     pain_opts = [
-        "Moving (유주통) - Phlegm", 
-        "Stabbing (자통) - Blood Stasis", 
-        "Fixed/Cold (한통) - Cold", 
-        "Better w/ Warmth (득온즉감) - Cold", 
-        "Worse at Night (야간통) - Blood Stasis", 
-        "Heavy/Stone-like (중통) - Dampness",
-        "Worse Standing (오래 서있으면 악화) - Qi"
+        "Moving (유주통 遊走痛) - Phlegm/Wind", 
+        "Stabbing (자통 刺痛) - Blood Stasis", 
+        "Fixed/Cold (한통 寒痛) - Cold", 
+        "Better w/ Warmth (득온즉감 得溫則減) - Cold", 
+        "Worse at Night (야간통 夜甚) - Blood Stasis", 
+        "Heavy/Stone-like (중통 重痛) - Dampness",
+        "Worse Standing (구립즉심 久立則甚) - Qi"
     ]
-    st.multiselect("Pain Nature (Page 15/16)", pain_opts, key="pain_nature")
+    st.multiselect("Pain Nature (통증 양상 - Page 15/16)", pain_opts, key="pain_nature")
 
-# --- GENERATION ---
+# --- GENERATION (가상환자 생성) ---
 def generate_patient():
     try:
         model = genai.GenerativeModel('gemini-flash-latest') 
     except:
-        st.error("Check API Key.")
+        st.error("Check API Key (API 키를 확인하세요).")
         return
 
     # --- STEP 4: GET RICH KOREAN DESCRIPTIONS FOR LLM ---
@@ -1788,9 +1797,9 @@ def generate_patient():
         try:
             response = model.generate_content(system_prompt, generation_config={"response_mime_type": "application/json"})
             data = json.loads(response.text)
-            st.success("✅ Generated")
+            st.success("✅ Generated (생성 완료)")
             st.subheader(data['summary'])
-            t1, t2, t3 = st.tabs(["🇺🇸 SOAP", "🇰🇷 Narrative", "🧠 Reasoning"])
+            t1, t2, t3 = st.tabs(["🇺🇸 SOAP Note (영문)", "🇰🇷 Narrative (환자 진술)", "🧠 Reasoning (변증 논리)"])
             with t1: st.markdown(data['soap_english'])
             with t2: st.markdown(data['narrative_korean'])
             with t3: st.info(data['reasoning'])
@@ -1800,6 +1809,6 @@ def generate_patient():
 
 # --- GENERATE BUTTON (Outside the function) ---
 st.markdown("---")
-if st.button("🩺 Generate Scenario", type="primary"):
+if st.button("🩺 Generate Scenario (가상환자 생성)", type="primary"):
     generate_patient()
 

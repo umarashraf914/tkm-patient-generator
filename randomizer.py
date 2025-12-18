@@ -482,6 +482,7 @@ def _apply_cold_symptoms(session, patient_data):
     session.cold_sweating_check = bool(sweat_opt >= 3)
     
     # Cold chief type (at least 1 required)
+    # [교수님 피드백] 인후통(목감기), 몸살(신체통)도 주소증으로 포함 가능하도록
     cold_chief_types = []
     if session.fever_sev >= 2:
         cold_chief_types.append("발열 (Fever)")
@@ -492,7 +493,11 @@ def _apply_cold_symptoms(session, patient_data):
     if session.cough_sev >= 2:
         cold_chief_types.append("기침 (Cough)")
     if throat_opt >= 2:
-        cold_chief_types.append("인후통 (Sore throat)")
+        cold_chief_types.append("인후통 (Sore throat)")  # 목감기
+    
+    # [교수님 피드백] 몸살(신체통) 주소증 추가
+    if body_ache_opt >= 2:
+        cold_chief_types.append("몸살 (Body ache)")  # 신체통
     
     # Ensure at least 1 chief type
     if not cold_chief_types:

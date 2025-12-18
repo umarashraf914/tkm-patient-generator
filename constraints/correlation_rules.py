@@ -359,21 +359,24 @@ def _apply_cold_chief_type_consistency(session):
     """
     Page 39: Cold chief type must match prominent symptoms.
     감기주소증 유형이 실제 증상과 일치해야 함
+    
+    [교수님 피드백] 인후통(목감기), 몸살(신체통) 포함
     """
     if not hasattr(session, 'cold_chief_type') or not session.cold_chief_type:
         return
     
     # Map chief types to their corresponding symptom variables
+    # [교수님 피드백] 인후통, 몸살 명시
     chief_type_symptom_map = {
         "발열증상 위주": ("fever_sev", 3),
         "오한증상 위주": ("chills_sev", 3),
         "콧물 위주": ("snot_sev", 3),
         "코막힘 위주": ("nose_block_sev", 3),
-        "인후통 위주": ("sore_throat", True),
+        "인후통 위주": ("sore_throat", True),  # 목감기
         "재채기 위주": ("sneeze_sev", 3),
         "기침증상 위주": ("cough_sev", 3),
         "가래 위주": ("phlegm_amt", 3),
-        "몸살 위주": ("body_ache_cold", True),
+        "몸살 위주": ("body_ache_cold", True),  # 신체통
         "신중 위주": ("body_heaviness_cold", True),
         "두통/경항통 위주": ("headache_cold", True),
     }

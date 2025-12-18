@@ -231,19 +231,20 @@ RELIEVING_FACTORS = [
 # ===========================================
 # PAGE 39: 감기주소증 유형 (Cold Chief Complaint Types)
 # 최소 1개 이상 생성 필수
+# [교수님 피드백] 목감기(인후통), 몸살(신체통) 포함 필수
 # ===========================================
 COLD_CHIEF_TYPES = [
-    "발열증상 위주 (Fever-dominant)",
-    "오한증상 위주 (Chills-dominant)",
-    "콧물 위주 (Runny nose-dominant)",
-    "코막힘 위주 (Nasal congestion-dominant)",
-    "인후통 위주 (Sore throat-dominant)",
-    "재채기 위주 (Sneezing-dominant)",
-    "기침증상 위주 (Cough-dominant)",
-    "가래 위주 (Phlegm-dominant)",
-    "몸살 위주 (Body ache-dominant: 신체통/근육통/관절통)",
-    "신중 위주 (Body heaviness-dominant: 몸이 무거움)",
-    "두통/경항통 위주 (Headache/Neck pain-dominant)"
+    "발열증상 위주",
+    "오한증상 위주",
+    "콧물 위주",
+    "코막힘 위주",
+    "인후통 위주 (목감기)",  # [교수님 피드백] 목감기 명시
+    "재채기 위주",
+    "기침증상 위주",
+    "가래 위주",
+    "몸살 위주 (신체통/근육통/관절통)",  # [교수님 피드백] 몸살 명시
+    "신중 위주 (몸이 무거움)",
+    "두통/경항통 위주"
 ]
 
 # Page 39: 감기 가상환자 표현 (Natural Language Symptoms)

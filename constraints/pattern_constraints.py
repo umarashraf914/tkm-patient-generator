@@ -2,6 +2,12 @@
 ═══════════════════════════════════════════════════════════════════════════════
 TKM Patient Generator - Disease Pattern-Specific Constraints
 Based on Clinical Guidelines Pages 15-16, 23
+
+[교수님 피드백 2025-01 반영]
+- 감기: 목감기(인후통), 몸살(신체통)이 주소증으로 항상 가능하도록 설정
+- 알레르기비염: 청수양 콧물(맑은 콧물) 위주로, 황농성(누런 콧물) 제외
+- 요통: 고령자 열증 제외, 어혈형에 외상력 추가
+- 소화불량: 식적형에서 과식 관련 원인 제외
 ═══════════════════════════════════════════════════════════════════════════════
 
 This module contains pattern-specific constraints for each disease type:
@@ -16,6 +22,7 @@ import random
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # COLD (감기) CONSTRAINTS - Page 15
+# [교수님 피드백] 감기 일반 증상으로 목감기(인후통), 몸살(신체통) 포함 필수
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def apply_cold_constraints(session):
@@ -26,11 +33,17 @@ def apply_cold_constraints(session):
     - 0: Wind-Cold (풍한형) - 惡寒重, 無汗
     - 1: Wind-Heat (풍열형) - 身熱, 有汗
     - 2: Wind-Dryness (풍조형) - Dry symptoms
+    
+    [교수님 피드백]
+    - 모든 감기 환자에서 인후통/몸살이 주소증으로 가능해야 함
     """
-    if "Cold" not in session.disease:
+    if "Cold" not in session.disease and "감기" not in session.disease:
         return
     
     current_pattern = session.pattern_idx
+    
+    # [교수님 피드백] 일반 감기 증상 보장 - 인후통, 몸살 가능성 확보
+    _ensure_cold_general_symptoms(session)
     
     if current_pattern == 0:
         _apply_wind_cold_pattern(session)
@@ -38,6 +51,27 @@ def apply_cold_constraints(session):
         _apply_wind_heat_pattern(session)
     elif current_pattern == 2:
         _apply_wind_dryness_pattern(session)
+
+
+def _ensure_cold_general_symptoms(session):
+    """
+    [교수님 피드백] 감기 일반 증상 보장
+    - 인후통(목감기)과 몸살(신체통)이 주소증으로 가능해야 함
+    - 현재 증상 수준이 너무 낮으면 일부 증상을 높여 현실성 부여
+    """
+    # 인후통이 전혀 없는 경우 일정 확률로 경미한 인후통 추가
+    if hasattr(session, 'sore_throat') and not session.sore_throat:
+        if random.random() < 0.3:  # 30% 확률로 인후통 추가
+            session.sore_throat = True
+            if hasattr(session, 'throat_redness'):
+                session.throat_redness = random.randint(2, 3)
+    
+    # 몸살(신체통)이 전혀 없는 경우 일정 확률로 경미한 몸살 추가
+    if hasattr(session, 'body_ache_cold') and not session.body_ache_cold:
+        if random.random() < 0.25:  # 25% 확률로 몸살 추가
+            session.body_ache_cold = True
+            if hasattr(session, 'body_ache'):
+                session.body_ache = random.randint(2, 3)
 
 
 def _apply_wind_cold_pattern(session):
@@ -130,21 +164,29 @@ def _apply_wind_dryness_pattern(session):
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # RHINITIS (비염) CONSTRAINTS - Page 23
+# [교수님 피드백] 알레르기비염은 청수양(맑은 콧물) 위주, 황농성(누런 콧물) 제외
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def apply_rhinitis_constraints(session):
     """
     Apply rhinitis (비염) pattern-specific constraints.
     
+    [교수님 피드백] 알레르기비염은 수체형이므로:
+    - 청수양 (맑은 콧물) 위주로 생성
+    - 황농성 (누렇고 찐득한 콧물)은 제외하거나 매우 드물게
+    
     Patterns (수체형 variations):
-    - 0: Yuebi (월비가반하탕) - Heat/sticky
+    - 0: Yuebi (월비가반하탕) - 유일하게 열증/점액 가능
     - 1: Shegan (사간마황탕) - Cold/asthma
-    - 2: Minor Blue Dragon (소청룡탕) - Cold/watery
+    - 2: Minor Blue Dragon (소청룡탕) - Cold/watery ★핵심
     - 3: Ling-Gan (영감강미신하인탕) - Cold/deficiency
     - 4: Mahuang-Fuzi (마황부자세신탕) - Kidney Yang deficiency
     """
-    if "Rhinitis" not in session.disease:
+    if "Rhinitis" not in session.disease and "비염" not in session.disease:
         return
+    
+    # [교수님 피드백] 기본적으로 알레르기비염은 맑은 콧물 위주
+    _ensure_rhinitis_watery_discharge(session)
     
     pattern_handlers = {
         0: _apply_yuebi_pattern,
@@ -159,9 +201,33 @@ def apply_rhinitis_constraints(session):
         handler(session)
 
 
+def _ensure_rhinitis_watery_discharge(session):
+    """
+    [교수님 피드백] 알레르기비염 콧물 특성 보장
+    - 청수양 (맑은 콧물)이 기본
+    - 황농성 (누런 콧물)은 월비가반하탕 패턴에서만 허용
+    """
+    # 콧물 색상이 황색/녹색이면 맑은 콧물로 변경 (월비가반하탕 제외)
+    if hasattr(session, 'snot_type'):
+        yellow_keywords = ["황", "yellow", "Yellow", "녹", "green", "Green", "찐득", "sticky", "Sticky"]
+        if any(kw in str(session.snot_type) for kw in yellow_keywords):
+            # 월비가반하탕(열증) 패턴이 아니면 맑은 콧물로 강제 변경
+            if session.pattern_idx != 0:
+                session.snot_type = "청수양 (淸水樣) - 맑은 콧물"
+    
+    if hasattr(session, 'snot_color'):
+        if session.snot_color in ["황색", "녹색", "Yellow", "Green"]:
+            if session.pattern_idx != 0:
+                session.snot_color = "맑음/투명"
+
+
 def _apply_yuebi_pattern(session):
-    """Yuebi (월비가반하탕) - Heat/sticky pattern."""
-    session.snot_type = "Yellow/Thick (누렇고 찐득)"
+    """
+    Yuebi (월비가반하탕) - Heat/sticky pattern.
+    [교수님 피드백] 이 패턴만 황농성(누런 콧물) 허용
+    """
+    # 월비가반하탕은 열증이므로 누런 콧물 가능
+    session.snot_type = "백점액 (白粘) - 희고 끈적"  # 황농성보다는 백점액 권장
     if session.tongue_coat_color == "White":
         session.tongue_coat_color = "Yellow"
 
@@ -201,11 +267,16 @@ def _apply_mahuang_fuzi_pattern(session):
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # BACK PAIN (요통) CONSTRAINTS - Pages 15-16
+# [교수님 피드백] 고령자 열증 제외, 어혈형에 외상력 추가
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def apply_back_pain_constraints(session):
     """
     Apply back pain (요통) pattern-specific constraints (Pages 15-16).
+    
+    [교수님 피드백]
+    - 고령자(65세 이상)에게 열증형(습열) 배제
+    - 어혈형에는 반드시 외상력(낙상, 타박 등) 포함
     
     Patterns (한열허실 based):
     - 0: 신허 (Kidney Deficiency)
@@ -213,14 +284,17 @@ def apply_back_pain_constraints(session):
     - 2: 식적 (Food Stagnation)
     - 3: 기 (Qi)
     - 4: 좌섬 (Sprain)
-    - 5: 어혈 (Blood Stasis)
+    - 5: 어혈 (Blood Stasis) ★외상력 필수
     - 6: 풍 (Wind)
     - 7: 한 (Cold)
     - 8: 습 (Dampness)
-    - 9: 습열 (Damp-Heat)
+    - 9: 습열 (Damp-Heat) ★고령자 제외
     """
-    if "Back Pain" not in session.disease:
+    if "Back Pain" not in session.disease and "요통" not in session.disease:
         return
+    
+    # [교수님 피드백] 고령자(65세 이상)에게 열증(습열) 패턴 배제
+    _exclude_heat_pattern_for_elderly(session)
     
     # Ensure pain severity is capped at 7 per KTAS rules
     if session.pain_sev >= 7:
@@ -253,6 +327,20 @@ def apply_back_pain_constraints(session):
         handler(session, pain_nature_list)
 
 
+def _exclude_heat_pattern_for_elderly(session):
+    """
+    [교수님 피드백] 고령자(65세 이상)에게 열증(습열) 패턴 배제
+    - 습열형(pattern_idx=9)인 경우 한증형(pattern_idx=7)으로 변경
+    """
+    age = getattr(session, 'age', 40)
+    if age >= 65 and session.pattern_idx == 9:  # 습열형(Damp-Heat)
+        # 고령자에게 습열 대신 한증으로 변경
+        session.pattern_idx = 7  # 한증형(Cold)
+        # 로그 출력 (디버깅용)
+        if hasattr(session, 'pattern_change_log'):
+            session.pattern_change_log = "고령자(65+) 열증 → 한증 변경"
+
+
 def _apply_kidney_deficiency_pattern(session, pain_nature_list):
     """
     신허 (Kidney Deficiency) pattern.
@@ -282,8 +370,18 @@ def _apply_food_stagnation_pattern(session, pain_nature_list):
     식적 (Food Stagnation) pattern.
     Page 15: Caused by overeating/alcohol
     Difficulty bending/straightening, 맥滑 (slippery pulse)
+    
+    [교수님 피드백] 과식 관련 원인 제외
+    - "과식" 대신 "음주", "소화 불량" 등으로 대체
     """
-    session.back_pain_cause = "Overeating/Alcohol (음주/과식)"
+    # [교수님 피드백] 과식 제외 - 대체 원인 사용
+    non_overeating_causes = [
+        "음주 (Alcohol)",
+        "소화기능 저하 (Digestive Weakness)",
+        "불규칙한 식사 (Irregular Meals)",
+        "기름진 음식 (Greasy Food)"
+    ]
+    session.back_pain_cause = random.choice(non_overeating_causes)
     session.pulse_smooth = "Smooth (활)"
     session.appetite = random.choice(["None", "Low"])
     session.bloating = random.randint(2, 4)
@@ -320,8 +418,23 @@ def _apply_blood_stasis_pattern(session, pain_nature_list):
     Page 15: Fall, hit, or chronic injury
     Less pain during day, worse at night; stabbing pain
     맥澀 (choppy pulse)
+    
+    [교수님 피드백] 어혈형에는 반드시 외상력(낙상, 타박 등) 포함
     """
-    session.back_pain_cause = "Trauma/Fall (외상/낙상)"
+    # [교수님 피드백] 외상력 필수 - 구체적인 외상 사유 추가
+    injury_causes = [
+        "낙상 (Fall)",
+        "타박상 (Bruise/Contusion)",
+        "교통사고 (Traffic Accident)",
+        "운동 중 부상 (Sports Injury)",
+        "무거운 물건 들다 삐끗 (Lifting Injury)"
+    ]
+    session.back_pain_cause = random.choice(injury_causes)
+    
+    # 외상력 명시적 기록
+    session.trauma_history = True
+    session.trauma_detail = session.back_pain_cause
+    
     session.back_pain_timing = "Worse at Night (야간 악화)"
     
     if "Stabbing (자통) - Blood Stasis" not in pain_nature_list:
@@ -396,11 +509,16 @@ def _apply_damp_heat_pattern(session, pain_nature_list):
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DYSPEPSIA (소화불량) CONSTRAINTS - Page 16
+# [교수님 피드백] 식적형에서 과식 관련 원인 제외
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def apply_dyspepsia_constraints(session):
     """
     Apply dyspepsia (소화불량) pattern-specific constraints (Page 16).
+    
+    [교수님 피드백]
+    - 식적형에서 "과식" 또는 "폭식" 관련 원인 제외
+    - 대신 소화기능 저하, 스트레스 등으로 대체
     
     Patterns:
     - 0: 비위허약/위허기허 (Spleen-Stomach Weakness)
@@ -408,9 +526,9 @@ def apply_dyspepsia_constraints(session):
     - 2: 간위불화 (Liver-Stomach Disharmony)
     - 3: 비위습열 (Spleen-Stomach Damp-Heat)
     - 4: 한열착잡 (Cold-Heat Complex)
-    - 5: 음식정체/식적 (Food Stagnation)
+    - 5: 음식정체/식적 (Food Stagnation) ★과식 제외
     """
-    if "Dyspepsia" not in session.disease:
+    if "Dyspepsia" not in session.disease and "소화불량" not in session.disease:
         return
     
     dyspepsia_specs = session.get("dyspepsia_spec", [])
@@ -553,6 +671,9 @@ def _apply_dyspepsia_food_stagnation_pattern(session, dyspepsia_specs):
     음식정체/식적 (Food Stagnation) pattern.
     Page 16-17: Acid reflux with foul smell, no appetite
     苔厚膩, 脈滑
+    
+    [교수님 피드백] 과식/폭식 관련 원인 제외
+    - "과식" 대신 "소화기능 저하", "스트레스", "찬음식" 등으로 대체
     """
     session.acid_reflux = True
     session.foul_belch = True
@@ -564,6 +685,19 @@ def _apply_dyspepsia_food_stagnation_pattern(session, dyspepsia_specs):
     
     session.nausea = random.randint(2, 4)
     session.appetite = "None"
+    
+    # [교수님 피드백] 과식 원인 제외 - 대체 원인 사용
+    # 기존: "과식", "폭식", "많이 먹음" 등 제외
+    # 대체: 소화기능 저하, 스트레스, 찬음식, 불규칙한 식사 등
+    non_overeating_causes = [
+        "소화기능 저하 (Digestive Weakness)",
+        "스트레스/정서적 요인 (Stress/Emotional)",
+        "찬음식 섭취 (Cold Food Intake)",
+        "불규칙한 식사 (Irregular Meals)",
+        "기름진 음식 (Greasy Food)",
+        "급하게 먹음 (Eating Too Fast)"
+    ]
+    session.dyspepsia_cause = random.choice(non_overeating_causes)
     
     # Tongue: Thick greasy coat
     session.tongue_coat_thick = "Greasy"

@@ -281,10 +281,10 @@ COLD_PATIENT_EXPRESSIONS = {
 
 # Page 40: 감기 진찰소견 옵션
 COLD_EXAM_OPTIONS = {
-    "stethoscope": ["Normal (정상)", "Rale (수포음)", "Wheezing (천명음)", "Decreased (감소)"],
-    "throat_visual": ["Normal (정상)", "Redness (발적)", "Swelling (부종)", "Exudate (삼출물)"],
-    "tongue_depressor": ["Normal (정상)", "Enlarged (편도비대)", "Exudate (삼출물)", "Inflammation (염증)"],
-    "rhinoscope": ["Normal (정상)", "Congestion (충혈)", "Discharge (분비물)", "Polyp (폴립)"]
+    "stethoscope": ["정상", "수포음", "천명음", "감소"],
+    "throat_visual": ["정상", "발적", "부종", "삼출물"],
+    "tongue_depressor": ["정상", "편도비대", "삼출물", "염증"],
+    "rhinoscope": ["정상", "충혈", "분비물", "폴립"]
 }
 
 

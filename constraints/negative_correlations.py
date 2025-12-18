@@ -115,9 +115,9 @@ def _apply_age_related_rules(session):
     if is_minor:
         # Rule 1: Minors should be students, not have professional jobs
         professional_jobs = [
-            "Office (사무직)", 
-            "Labor (현장직)", 
-            "Housewife (가사)",
+            "사무직", 
+            "현장직", 
+            "가사",
             "관리직",
             "전문직",
             "서비스직",
@@ -125,7 +125,7 @@ def _apply_age_related_rules(session):
             "기능직"
         ]
         if session.job in professional_jobs:
-            session.job = "Student (학생)"
+            session.job = "학생"
         
         # Rule 2: Minors should not have chronic disease history
         chronic_conditions = ["고혈압", "당뇨", "이상지질혈증"]
@@ -557,7 +557,7 @@ def _apply_menstrual_consistency_rules(session):
       (If menstrual cycle is given → "no period 3+ months" is excluded)
     """
     # Only applies to females
-    if session.sex != "Female (여)":
+    if session.sex != "여":
         return
     
     # Check if menstrual cycle is specified
@@ -565,12 +565,12 @@ def _apply_menstrual_consistency_rules(session):
     
     if has_cycle and session.mens_cycle > 0:
         # Cycle is specified → cannot be "3+ months without period"
-        if session.mens_regular == "Menopause (폐경)":
+        if session.mens_regular == "폐경":
             # If menopause but cycle is given, this is inconsistent
             # Either clear cycle or keep menopause
             if session.age < 45:
                 # Young age, keep cycle
-                session.mens_regular = random.choice(["Regular (규칙)", "Irregular (불규칙)"])
+                session.mens_regular = random.choice(["규칙", "불규칙"])
             else:
                 # Older age, may be perimenopausal
                 session.mens_cycle = 0

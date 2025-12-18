@@ -65,8 +65,8 @@ def _apply_wind_cold_pattern(session):
     
     # Joint pain correlation (骨節疼痛)
     if random.random() < 0.6:
-        if "Joint Pain (관절통)" not in session.cold_symptoms_spec:
-            session.cold_symptoms_spec.append("Joint Pain (관절통)")
+        if "골절동통 (骨節疼痛) - 풍한" not in session.cold_symptoms_spec:
+            session.cold_symptoms_spec.append("골절동통 (骨節疼痛) - 풍한")
     
     # Prefers warm/hot drinks (avoids cold)
     if session.drink_temp == "Icy":

@@ -24,6 +24,7 @@ def apply_consistency_rules(session):
     Args:
         session: Streamlit session_state object
     """
+    _apply_age_height_weight_constraints(session)  # Apply first!
     _apply_fever_temperature_consistency(session)
     _apply_womens_health_constraints(session)
     _apply_snot_rhinitis_constraints(session)
@@ -32,6 +33,100 @@ def apply_consistency_rules(session):
     _apply_sleep_constraints(session)
     _apply_excretion_constraints(session)
     _apply_pulse_tongue_constraints(session)
+
+
+def _apply_age_height_weight_constraints(session):
+    """
+    Ensure height, weight, job, alcohol, and smoking are appropriate for the patient's age.
+    
+    Age-appropriate ranges (approximate Korean averages):
+    - Minimum age is 10 (to match CSV rule categories)
+    - Adolescents (10-17): Height 130-175cm, Weight 30-70kg, Student only, No alcohol/smoking
+    - Young Adults (18-19): Height 155-185cm, Weight 45-85kg, Student or entry-level jobs
+    - Adults (20-64): Height 150-190cm, Weight 45-100kg, Any job
+    - Elderly (65+): Height 145-180cm, Weight 40-85kg
+    """
+    age = session.age
+    
+    # Enforce minimum age = 10 (CSV rules start at age category 1 = 10-19)
+    if age < 10:
+        session.age = 10
+        age = 10
+    
+    # ===========================================
+    # MINORS (10-17): Strict constraints
+    # ===========================================
+    if age <= 17:
+        # Height: 10-year-old ~140cm, 17-year-old ~170cm
+        # UI minimum is 130cm
+        min_height = max(130, 130 + (age - 10) * 3)  # Grows ~3cm/year, min 130 for UI
+        max_height = 145 + (age - 10) * 4  # Max grows faster
+        if session.height > max_height:
+            session.height = random.randint(min_height, max_height)
+        if session.height < min_height:
+            session.height = random.randint(min_height, min(max_height, min_height + 15))
+        
+        # Weight: proportional to height/age
+        # UI minimum is 30kg, so ensure weight is at least 30
+        min_weight = max(30, 28 + (age - 10) * 4)   # ~30kg at 10 (UI min), grows with age
+        max_weight = 40 + (age - 10) * 5   # ~40kg at 10, ~75kg at 17
+        if session.weight > max_weight:
+            session.weight = random.randint(min_weight, max_weight)
+        if session.weight < min_weight:
+            session.weight = random.randint(min_weight, min(max_weight, min_weight + 10))
+        
+        # Job: Minors can ONLY be students
+        session.job = "학생"
+        
+        # Alcohol: Minors cannot drink
+        session.social_alcohol_freq = "비음주"
+        
+        # Smoking: Minors should not smoke (or very minimal if > 15)
+        if age < 16:
+            session.social_smoke_daily = 0.0
+        elif session.social_smoke_daily > 5:
+            session.social_smoke_daily = random.uniform(0, 3)
+    
+    # ===========================================
+    # YOUNG ADULTS (18-19): Some restrictions
+    # ===========================================
+    elif age <= 19:
+        if session.height > 190:
+            session.height = random.randint(160, 185)
+        if session.height < 155:
+            session.height = random.randint(158, 175)
+        if session.weight > 90:
+            session.weight = random.randint(50, 80)
+        if session.weight < 45:
+            session.weight = random.randint(48, 65)
+        
+        # Job: Young adults typically students or entry-level
+        if session.job in ["관리직", "전문직"]:
+            session.job = random.choice(["학생", "사무직"])
+    
+    # ===========================================
+    # ADULTS (20-64): Normal ranges
+    # ===========================================
+    elif age <= 64:
+        if session.height < 145:
+            session.height = random.randint(150, 175)
+        if session.weight < 40:
+            session.weight = random.randint(50, 70)
+    
+    # ===========================================
+    # ELDERLY (65+): Adjusted ranges
+    # ===========================================
+    else:
+        if session.height > 185:
+            session.height = random.randint(155, 175)
+        if session.weight > 95:
+            session.weight = random.randint(55, 80)
+        if session.weight < 40:
+            session.weight = random.randint(45, 65)
+        
+        # Elderly typically retired
+        if session.job == "학생":
+            session.job = random.choice(["사무직", "가사"])
 
 
 def _apply_fever_temperature_consistency(session):
@@ -62,7 +157,7 @@ def _apply_womens_health_constraints(session):
     - Males have no menstrual data
     - Women >50 marked as menopause
     """
-    if session.sex == "Female (여)":
+    if session.sex == "여":
         if session.age < 14 or session.age > 50:
             session.mens_regular = "Menopause" if session.age > 50 else "N/A"
             session.mens_pain_score = 0

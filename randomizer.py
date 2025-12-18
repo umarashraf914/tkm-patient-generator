@@ -5,10 +5,12 @@ TKM Patient Generator - Randomization Functions
 """
 
 import random
+import logging
 from data_mappings import get_weights
 from constants import (
     DISEASE_PATTERNS, PAST_COLD_PROBLEM_AREAS, AGGRAVATING_FACTORS,
-    RELIEVING_FACTORS
+    RELIEVING_FACTORS, FREQUENT_COMORBIDITIES,
+    get_random_additional_symptoms, get_random_comorbidities
 )
 from constraint_rules import apply_constraint_rules, apply_symptom_correlation_rules
 
@@ -24,6 +26,60 @@ try:
 except ImportError:
     CSV_RULES_AVAILABLE = False
     print("Warning: generation_rules module not available, using fallback randomization")
+
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+
+# Create a logger for randomization tracking
+randomizer_logger = logging.getLogger("randomizer")
+randomizer_logger.setLevel(logging.DEBUG)
+
+# Create console handler if not already present
+if not randomizer_logger.handlers:
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(levelname)s [%(name)s] %(message)s')
+    console_handler.setFormatter(formatter)
+    randomizer_logger.addHandler(console_handler)
+
+# Enable/disable detailed logging (set to True to see all value changes)
+# Set to False to disable console output
+ENABLE_RANDOMIZER_LOGGING = False  # Change to True to enable detailed logging
+
+def log_value_set(field_name: str, value, source: str):
+    """Log when a session state value is set."""
+    if ENABLE_RANDOMIZER_LOGGING:
+        randomizer_logger.debug(f"SET {field_name} = {value} [Source: {source}]")
+
+def log_layer_start(layer_name: str):
+    """Log when a layer starts."""
+    if ENABLE_RANDOMIZER_LOGGING:
+        randomizer_logger.info(f"{'='*50}")
+        randomizer_logger.info(f"STARTING: {layer_name}")
+        randomizer_logger.info(f"{'='*50}")
+
+
+def print_randomization_summary(session):
+    """Print a human-readable summary of key randomized values."""
+    print("\n" + "="*60)
+    print("🎲 RANDOMIZATION SUMMARY")
+    print("="*60)
+    print(f"Disease: {getattr(session, 'disease', 'N/A')}")
+    print(f"Pattern Index: {getattr(session, 'pattern_idx', 'N/A')}")
+    print("-"*60)
+    print("COMORBIDITIES (현병력) - FROM CSV:")
+    hx = getattr(session, 'history_conditions', [])
+    if hx:
+        for c in hx:
+            print(f"  ✓ {c}")
+    else:
+        print("  (None)")
+    print("-"*60)
+    print("Expected CSV Probabilities:")
+    print("  당뇨: 15%  |  고혈압: 30%  |  이상지질혈증: 45%")
+    print("="*60 + "\n")
 
 
 # ============================================================================
@@ -54,68 +110,87 @@ def randomize_from_csv_rules(st, disease_name: str, pattern: str = None):
         
         session = st.session_state
         
+        # =============================================================================
         # Map CSV symptom keys to session state variables
-        # This mapping converts CSV rule outputs to the expected session state format
+        # CSV keys follow pattern: "Category_Subcategory_ItemName"
+        # =============================================================================
         
-        # Demographics
-        if "인구학적 정보__성별" in patient_data:
-            opt = patient_data["인구학적 정보__성별"]["option_number"]
-            session.sex = "Male (남)" if opt == 1 else "Female (여)"
+        # Helper function to find key by partial match
+        def find_key(partial_name):
+            """Find a key in patient_data containing the partial name."""
+            for key in patient_data:
+                if partial_name in key:
+                    return key
+            return None
         
-        if "인구학적 정보__나이" in patient_data:
-            opt = patient_data["인구학적 정보__나이"]["option_number"]
+        # Demographics - use actual CSV keys
+        sex_key = find_key("성별")
+        if sex_key and sex_key in patient_data:
+            opt = patient_data[sex_key]["option_number"]
+            session.sex = "남" if opt == 1 else "여"
+        
+        age_key = find_key("나이")
+        if age_key and age_key in patient_data:
+            opt = patient_data[age_key]["option_number"]
             # Map age category to actual age range
             age_ranges = {1: (10, 19), 2: (20, 39), 3: (40, 54), 4: (55, 69), 5: (70, 85)}
             age_range = age_ranges.get(opt, (20, 80))
             session.age = random.randint(age_range[0], age_range[1])
         
-        if "인구학적 정보__직업" in patient_data:
-            opt = patient_data["인구학적 정보__직업"]["option_number"]
+        job_key = find_key("직업")
+        if job_key and job_key in patient_data:
+            opt = patient_data[job_key]["option_number"]
             job_map = {
-                1: "Manager (관리직)", 2: "Professional (전문직)", 
-                3: "Office (사무직)", 4: "Service (서비스직)",
-                5: "Sales (판매직)", 6: "Agriculture (농/어업)",
-                7: "Technical (기능직)", 8: "Operator (조립직)",
-                9: "Labor (단순노무)", 10: "Military (군인)",
-                11: "Other (기타)"
+                1: "사무직", 2: "사무직", 
+                3: "사무직", 4: "사무직",
+                5: "사무직", 6: "현장직",
+                7: "현장직", 8: "현장직",
+                9: "현장직", 10: "사무직",
+                11: "사무직"
             }
-            session.job = job_map.get(opt, "Other (기타)")
+            session.job = job_map.get(opt, "사무직")
         
         # Height/Weight from category
-        if "인구학적 정보__키" in patient_data:
-            opt = patient_data["인구학적 정보__키"]["option_number"]
+        height_key = find_key("키")
+        if height_key and height_key in patient_data:
+            opt = patient_data[height_key]["option_number"]
             # Map to approximate height ranges
             height_ranges = {1: (150, 155), 2: (156, 162), 3: (163, 178), 4: (179, 186), 5: (187, 195)}
             h_range = height_ranges.get(opt, (160, 180))
             session.height = random.randint(h_range[0], h_range[1])
         
-        if "인구학적 정보__몸무게" in patient_data:
-            opt = patient_data["인구학적 정보__몸무게"]["option_number"]
+        weight_key = find_key("몸무게")
+        if weight_key and weight_key in patient_data:
+            opt = patient_data[weight_key]["option_number"]
             weight_ranges = {1: (45, 55), 2: (56, 63), 3: (64, 76), 4: (77, 85), 5: (86, 100)}
             w_range = weight_ranges.get(opt, (55, 85))
             session.weight = random.randint(w_range[0], w_range[1])
         
-        # Vitals
-        if "활력징후__체온" in patient_data:
-            opt = patient_data["활력징후__체온"]["option_number"]
+        # Vitals - use actual CSV keys
+        temp_key = find_key("체온")
+        if temp_key and temp_key in patient_data:
+            opt = patient_data[temp_key]["option_number"]
             temp_ranges = {1: (34.5, 35.5), 2: (36.0, 37.3), 3: (37.4, 37.9), 4: (38.0, 39.9), 5: (40.0, 41.0)}
             t_range = temp_ranges.get(opt, (36.0, 37.5))
             session.temp = round(random.uniform(t_range[0], t_range[1]), 1)
         
-        if "활력징후__맥박" in patient_data:
-            opt = patient_data["활력징후__맥박"]["option_number"]
+        pulse_key = find_key("맥박")
+        if pulse_key and pulse_key in patient_data:
+            opt = patient_data[pulse_key]["option_number"]
             pulse_ranges = {1: (45, 50), 2: (50, 60), 3: (60, 80), 4: (80, 100), 5: (100, 120)}
             p_range = pulse_ranges.get(opt, (60, 90))
             session.pulse_rate = random.randint(p_range[0], p_range[1])
         
-        if "활력징후__호흡" in patient_data:
-            opt = patient_data["활력징후__호흡"]["option_number"]
+        resp_key = find_key("호흡")
+        if resp_key and resp_key in patient_data:
+            opt = patient_data[resp_key]["option_number"]
             resp_ranges = {1: (8, 12), 2: (12, 20), 3: (21, 28)}
             r_range = resp_ranges.get(opt, (12, 20))
             session.resp = random.randint(r_range[0], r_range[1])
         
-        if "활력징후__혈압" in patient_data:
-            opt = patient_data["활력징후__혈압"]["option_number"]
+        bp_key = find_key("혈압")
+        if bp_key and bp_key in patient_data:
+            opt = patient_data[bp_key]["option_number"]
             bp_ranges = {
                 1: ((80, 90), (50, 60)),      # 저혈압
                 2: ((100, 119), (60, 79)),    # 정상
@@ -165,22 +240,29 @@ def _apply_cold_symptoms(session, patient_data):
     if "감기환자_감기주소증 유형_발열" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_발열"]["option_number"]
         # Store as severity level for UI display
-        session.fever_sev = opt
+        session.fever_sev = int(opt) if opt else 1
     
     # Chills severity
     if "감기환자_감기주소증 유형_오한" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_오한"]["option_number"]
-        session.chills_sev = opt
+        session.chills_sev = int(opt) if opt else 1
     
     # Nasal discharge amount
     if "감기환자_감기주소증 유형_콧물 감기" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_콧물 감기"]["option_number"]
-        session.snot_sev = opt
+        session.snot_sev = int(opt) if opt else 1
     
-    # Nasal discharge color
+    # Nasal discharge color - map option number to UI string
     if "감기환자_감기주소증 유형_콧물 색" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_콧물 색"]["option_number"]
-        session.snot_color = opt
+        snot_color_map = {
+            1: "없음",
+            2: "맑음/투명",
+            3: "백색",
+            4: "황색",
+            5: "녹색"
+        }
+        session.snot_color = snot_color_map.get(opt, "없음")
     
     # Nasal congestion
     if "감기환자_감기주소증 유형_코막힘" in patient_data:
@@ -200,17 +282,23 @@ def _apply_cold_symptoms(session, patient_data):
     # Cough
     if "감기환자_감기주소증 유형_기침" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_기침"]["option_number"]
-        session.cough_sev = opt
+        session.cough_sev = int(opt) if opt else 1
     
     # Phlegm amount
     if "감기환자_감기주소증 유형_담(가래) 양" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_담(가래) 양"]["option_number"]
-        session.phlegm_amt = opt
+        session.phlegm_amt = int(opt) if opt else 0
     
-    # Phlegm color
+    # Phlegm color - map option number to UI string
     if "감기환자_감기주소증 유형_담(가래) 색" in patient_data:
         opt = patient_data["감기환자_감기주소증 유형_담(가래) 색"]["option_number"]
-        session.phlegm_color = opt
+        phlegm_color_map = {
+            1: "맑음",
+            2: "백색",
+            3: "황색",
+            4: "녹색"
+        }
+        session.phlegm_color = phlegm_color_map.get(opt, "맑음")
     
     # Body ache
     if "감기환자_감기주소증 유형_몸살, 신체통, 근육통" in patient_data:
@@ -235,15 +323,182 @@ def _apply_cold_symptoms(session, patient_data):
         sweat_map = {1: "None (무한 無汗)", 2: "Normal (보통)", 3: "Normal (보통)", 4: "Excessive (다한 多汗)", 5: "Excessive (다한 多汗)"}
         session.sweat_amt = sweat_map.get(opt, "Normal (보통)")
     
-    # Throat exam
+    # Throat exam - map to UI string values
     if "감기환자_한의사 진찰 및 검사소견_인후부 진찰" in patient_data:
         opt = patient_data["감기환자_한의사 진찰 및 검사소견_인후부 진찰"]["option_number"]
         session.throat_redness = opt
+        # Map to exam_throat_visual UI option
+        throat_visual_map = {
+            1: "정상",
+            2: "발적",
+            3: "부종",
+            4: "삼출물"
+        }
+        session.exam_throat_visual = throat_visual_map.get(opt, "정상")
+    else:
+        session.exam_throat_visual = random.choice(["정상", "발적", "부종"])
     
-    # Tonsil exam
+    # Tonsil exam - map to UI string values
     if "감기환자_한의사 진찰 및 검사소견_편도진찰" in patient_data:
         opt = patient_data["감기환자_한의사 진찰 및 검사소견_편도진찰"]["option_number"]
         session.tonsil_swelling = opt
+        # Map to exam_tongue_depressor UI option
+        tongue_dep_map = {
+            1: "정상",
+            2: "편도비대",
+            3: "삼출물",
+            4: "염증"
+        }
+        session.exam_tongue_depressor = tongue_dep_map.get(opt, "정상")
+    else:
+        session.exam_tongue_depressor = random.choice(["정상", "편도비대"])
+    
+    # Stethoscope exam (lung sounds)
+    if "감기환자_한의사 진찰 및 검사소견_호흡음(폐음) 진찰" in patient_data:
+        opt = patient_data["감기환자_한의사 진찰 및 검사소견_호흡음(폐음) 진찰"]["option_number"]
+        stethoscope_map = {
+            1: "정상",
+            2: "수포음",
+            3: "천명음",
+            4: "감소"
+        }
+        session.exam_stethoscope = stethoscope_map.get(opt, "정상")
+    else:
+        session.exam_stethoscope = random.choice(["정상", "수포음"])
+    
+    # Rhinoscope exam
+    if "감기환자_한의사 진찰 및 검사소견_비경 검사" in patient_data:
+        opt = patient_data["감기환자_한의사 진찰 및 검사소견_비경 검사"]["option_number"]
+        rhinoscope_map = {
+            1: "정상",
+            2: "충혈"
+        }
+        session.exam_rhinoscope_finding = rhinoscope_map.get(opt, "정상")
+    else:
+        session.exam_rhinoscope_finding = random.choice(["정상", "충혈", "분비물"])
+    
+    # Smell reduction
+    if "감기환자_감기주소증 유형_후각 감퇴" in patient_data:
+        opt = patient_data["감기환자_감기주소증 유형_후각 감퇴"]["option_number"]
+        session.smell_reduction = int(opt) if opt else 0
+    else:
+        session.smell_reduction = random.randint(0, 3)
+    
+    # Alternating chills-fever
+    if "감기환자_감기주소증 유형_한열왕래" in patient_data:
+        opt = patient_data["감기환자_감기주소증 유형_한열왕래"]["option_number"]
+        session.alternating_chills_fever = int(opt) if opt else 0
+    else:
+        session.alternating_chills_fever = random.randint(0, 3)
+    
+    # Dyspnea
+    if "감기환자_감기주소증 유형_숨이 가쁨" in patient_data:
+        opt = patient_data["감기환자_감기주소증 유형_숨이 가쁨"]["option_number"]
+        session.cold_dyspnea = bool(opt >= 2)
+    else:
+        session.cold_dyspnea = random.choice([True, False, False])  # Usually False
+    
+    # Cold onset specific (days)
+    if "감기환자_O/S_감기증상 발현시점" in patient_data:
+        opt = patient_data["감기환자_O/S_감기증상 발현시점"]["option_number"]
+        onset_specific_map = {
+            1: "1일 전",
+            2: "2일 전",
+            3: "3일 전",
+            4: "4일 전",
+            5: "5일 전",
+            6: "1주일 전"
+        }
+        session.cold_onset_specific = onset_specific_map.get(opt, "3일 전")
+    else:
+        session.cold_onset_specific = random.choice(["1일 전", "2일 전", "3일 전", "4일 전", "5일 전"])
+    
+    # =========================================================================
+    # Set cold_symptoms_spec based on pattern and CSV data
+    # This maps various CSV symptoms to the UI multiselect options
+    # =========================================================================
+    cold_symptoms = []
+    
+    # Check for sweating (무한 = no sweat = 풍한)
+    sweat_opt = patient_data.get("감기환자_감기주소증 유형_감기 시 땀 유무", {}).get("option_number", 3)
+    if sweat_opt == 1:  # No sweating
+        cold_symptoms.append("무한 (無汗) - 풍한")
+    
+    # Check phlegm color for yellow (황담 = 풍열)
+    phlegm_color_opt = patient_data.get("감기환자_감기주소증 유형_담(가래) 색", {}).get("option_number", 1)
+    if phlegm_color_opt == 3:  # Yellow
+        cold_symptoms.append("황담 (黃痰) - 풍열")
+    elif phlegm_color_opt in [1, 2]:  # Clear or White
+        cold_symptoms.append("희박담 (稀薄白痰) - 풍한")
+    
+    # Check for sore throat/dry throat (인후건조 = 풍조)
+    throat_opt = patient_data.get("감기환자_감기주소증 유형_인후통", {}).get("option_number", 1)
+    if throat_opt >= 3:  # Significant throat symptoms
+        cold_symptoms.append("인후건조 (咽乾) - 풍조")
+    
+    # Check for body ache (골절동통 = 풍한)
+    body_ache_opt = patient_data.get("감기환자_감기주소증 유형_몸살, 신체통, 근육통", {}).get("option_number", 1)
+    if body_ache_opt >= 3:  # Significant body ache
+        cold_symptoms.append("골절동통 (骨節疼痛) - 풍한")
+    
+    # Check cough with little phlegm (객담소 = 풍조)
+    cough_opt = patient_data.get("감기환자_감기주소증 유형_기침", {}).get("option_number", 1)
+    phlegm_amt_opt = patient_data.get("감기환자_감기주소증 유형_담(가래) 양", {}).get("option_number", 1)
+    if cough_opt >= 3 and phlegm_amt_opt <= 2:  # Cough but little phlegm
+        cold_symptoms.append("객담소 (咳嗽少痰) - 풍조")
+    
+    # Set cold_symptoms_spec (ensure at least 1-2 symptoms for realism)
+    if not cold_symptoms:
+        # Default based on randomization
+        cold_symptoms = random.sample([
+            "무한 (無汗) - 풍한",
+            "희박담 (稀薄白痰) - 풍한",
+            "골절동통 (骨節疼痛) - 풍한"
+        ], k=random.randint(1, 2))
+    
+    session.cold_symptoms_spec = cold_symptoms
+    
+    # =========================================================================
+    # Set cold chief complaint checkboxes based on CSV data
+    # =========================================================================
+    # Sore throat checkbox
+    session.sore_throat = bool(throat_opt >= 2)
+    
+    # Body ache checkbox
+    session.body_ache_cold = bool(body_ache_opt >= 2)
+    
+    # Body heaviness checkbox
+    body_heavy_opt = patient_data.get("감기환자_감기주소증 유형_신중(身重)", {}).get("option_number", 1)
+    session.body_heaviness_cold = bool(body_heavy_opt >= 2)
+    
+    # Headache checkbox
+    headache_opt = patient_data.get("감기환자_감기주소증 유형_두부, 뒷목 불편감(강도)", {}).get("option_number", 1)
+    session.headache_cold = bool(headache_opt >= 2)
+    
+    # Neck pain checkbox (based on headache area)
+    session.neck_pain_cold = bool(headache_opt >= 3)
+    
+    # Sweating checkbox
+    session.cold_sweating_check = bool(sweat_opt >= 3)
+    
+    # Cold chief type (at least 1 required)
+    cold_chief_types = []
+    if session.fever_sev >= 2:
+        cold_chief_types.append("발열 (Fever)")
+    if session.chills_sev >= 2:
+        cold_chief_types.append("오한 (Chills)")
+    if session.snot_sev >= 2:
+        cold_chief_types.append("콧물 (Runny nose)")
+    if session.cough_sev >= 2:
+        cold_chief_types.append("기침 (Cough)")
+    if throat_opt >= 2:
+        cold_chief_types.append("인후통 (Sore throat)")
+    
+    # Ensure at least 1 chief type
+    if not cold_chief_types:
+        cold_chief_types = ["기침 (Cough)"]
+    
+    session.cold_chief_type = cold_chief_types
 
 
 def _apply_rhinitis_symptoms(session, patient_data):
@@ -265,80 +520,80 @@ def _apply_rhinitis_symptoms(session, patient_data):
     # Nasal discharge amount
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_콧물 량" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_콧물 량"]["option_number"]
-        session.snot_sev = opt
+        session.snot_sev = int(opt) if opt else 1
     
-    # Nasal discharge color
+    # Nasal discharge color - map to snot_type for rhinitis (different UI options)
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_콧물 색" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_콧물 색"]["option_number"]
-        session.snot_color = opt
+        snot_type_map = {
+            1: "청수양 (淸水樣) - 맑은 콧물",
+            2: "백점액 (白粘) - 희고 끈적",
+            3: "황농성 (黃膿) - 누렇고 찐득"
+        }
+        session.snot_type = snot_type_map.get(opt, "청수양 (淸水樣) - 맑은 콧물")
     
     # Nasal congestion
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_코막힘" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_코막힘"]["option_number"]
-        session.nasal_congestion = opt
+        session.nose_block_sev = int(opt) if opt else 1
     
     # Sneezing intensity
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_재채기(정도)" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_재채기(정도)"]["option_number"]
-        session.sneeze_intensity = opt
+        session.sneeze_intensity = int(opt) if opt else 1
     
     # Sneezing frequency
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_재채기(빈도)" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_재채기(빈도)"]["option_number"]
-        session.sneeze_sev = opt
+        session.sneeze_sev = int(opt) if opt else 1
     
     # Nose itching
     if "알러지비염가상환자_알러지비염 주증 및 동반증상_코 가려움" in patient_data:
         opt = patient_data["알러지비염가상환자_알러지비염 주증 및 동반증상_코 가려움"]["option_number"]
-        session.nose_itch = opt
+        session.nose_itch_sev = int(opt) if opt else 1
 
 
 def _apply_common_symptoms(session, patient_data):
     """Apply common symptoms that are shared across diseases."""
+    log_layer_start("LAYER 2: CSV-based Common Symptoms")
     
-    # History conditions
+    # History conditions - use correct CSV key pattern
     hx_conditions = []
-    if "현병력__고혈압" in patient_data:
-        if patient_data["현병력__고혈압"]["option_number"] == 2:
-            hx_conditions.append("고혈압")
-    if "현병력__당뇨" in patient_data:
-        if patient_data["현병력__당뇨"]["option_number"] == 2:
-            hx_conditions.append("당뇨")
-    if "현병력__이상지질혈증" in patient_data:
-        if patient_data["현병력__이상지질혈증"]["option_number"] == 2:
-            hx_conditions.append("이상지질혈증")
+    for key in patient_data:
+        if "현병력" in key and "고혈압" in key:
+            if patient_data[key]["option_number"] == 2:
+                hx_conditions.append("고혈압")
+        elif "현병력" in key and "당뇨" in key:
+            if patient_data[key]["option_number"] == 2:
+                hx_conditions.append("당뇨")
+        elif "현병력" in key and "이상지질혈증" in key:
+            if patient_data[key]["option_number"] == 2:
+                hx_conditions.append("이상지질혈증")
     session.history_conditions = hx_conditions
+    log_value_set("history_conditions", hx_conditions, "CSV (현병력)")
     
-    # Medications
+    # Medications - match with history conditions
     meds = []
-    if "약물력__혈압약" in patient_data:
-        if patient_data["약물력__혈압약"]["option_number"] == 2:
-            meds.append("혈압약")
-    if "약물력__당뇨약" in patient_data:
-        if patient_data["약물력__당뇨약"]["option_number"] == 2:
-            meds.append("당뇨약")
-    if "약물력__이상지질혈증약" in patient_data:
-        if patient_data["약물력__이상지질혈증약"]["option_number"] == 2:
-            meds.append("이상지질혈증약")
-    if "약물력__수면제" in patient_data:
-        if patient_data["약물력__수면제"]["option_number"] == 2:
-            meds.append("수면제")
+    if "고혈압" in hx_conditions:
+        meds.append("혈압약")
+    if "당뇨" in hx_conditions:
+        meds.append("당뇨약")
+    if "이상지질혈증" in hx_conditions:
+        meds.append("이상지질혈증약")
     session.meds_specific = meds
     
-    # Family history
+    # Family history - use correct CSV key pattern
     fam_hx = []
-    if "가족력__고혈압" in patient_data:
-        if patient_data["가족력__고혈압"]["option_number"] == 2:
-            fam_hx.append("고혈압")
-    if "가족력__당뇨" in patient_data:
-        if patient_data["가족력__당뇨"]["option_number"] == 2:
-            fam_hx.append("당뇨")
-    if "가족력__심장병" in patient_data:
-        if patient_data["가족력__심장병"]["option_number"] == 2:
-            fam_hx.append("심장병")
-    if "가족력__중풍" in patient_data:
-        if patient_data["가족력__중풍"]["option_number"] == 2:
-            fam_hx.append("중풍")
+    for key in patient_data:
+        if "가족력" in key:
+            if "고혈압" in key and patient_data[key]["option_number"] == 2:
+                fam_hx.append("고혈압")
+            elif "당뇨" in key and patient_data[key]["option_number"] == 2:
+                fam_hx.append("당뇨")
+            elif "심장병" in key and patient_data[key]["option_number"] == 2:
+                fam_hx.append("심장병")
+            elif "중풍" in key and patient_data[key]["option_number"] == 2:
+                fam_hx.append("중풍")
     session.family_hx = fam_hx
     
     # Alcohol - find correct key pattern
@@ -523,14 +778,19 @@ def randomize_inputs(st):
     """Randomize all patient input fields."""
     session = st.session_state
     
+    log_layer_start("LAYER 1: Hardcoded Random Values")
+    
     # ===========================================
     # 1. DEMOGRAPHICS (인구학적정보)
+    # NOTE: Minimum age = 10 to match CSV rule categories (options 1-5 start at age 10-19)
+    # UI BOUNDS: height min=130, weight min=30
     # ===========================================
-    session.age = random.randint(20, 80)
-    session.sex = random.choice(["Male (남)", "Female (여)"])
-    session.job = random.choice(["Student (학생)", "Office (사무직)", "Labor (현장직)", "Housewife (가사)"])
-    session.height = random.randint(150, 190)
-    session.weight = random.randint(45, 100)
+    session.age = random.randint(10, 85)  # Min 10 to match CSV rules
+    session.sex = random.choice(["남", "여"])
+    session.job = random.choice(["학생", "사무직", "현장직", "가사"])
+    session.height = random.randint(140, 190)  # Adjusted for age 10+, UI min is 130
+    session.weight = random.randint(45, 100)   # Adjusted for age 10+, UI min is 30
+    log_value_set("age/sex/job/height/weight", f"{session.age}/{session.sex}/.../...", "HARDCODED")
     
     # ===========================================
     # 2. VITALS (SAFETY RULES - Keep within safe clinical ranges)
@@ -546,72 +806,77 @@ def randomize_inputs(st):
     # ===========================================
     # 3. HISTORY & ONSET (병력 및 경과)
     # ===========================================
-    session.onset = random.choice(["1 day ago (1일 전)", "2-3 days ago (2-3일 전)", "1 week ago (1주 전)", "Chronic >3mo (만성 3개월 이상)"])
-    session.course = random.choice(["Worsening (악화중)", "Improving (호전중)", "Fluctuating (비슷/오르내림)"])
+    session.onset = random.choice(["1일 전", "2-3일 전", "1주 전", "만성 3개월 이상"])
+    session.course = random.choice(["악화중", "호전중", "비슷/오르내림"])
     session.history_conditions = random.sample(["고혈압", "당뇨", "이상지질혈증", "기타"], k=random.randint(0, 2))
+    log_value_set("history_conditions", session.history_conditions, "HARDCODED (will be overwritten by CSV)")
     session.meds_specific = random.sample(["혈압약", "당뇨약", "이상지질혈증약", "수면제", "항우울제", "항불안제"], k=random.randint(0, 3))
     session.family_hx = random.sample(["고혈압", "당뇨", "이상지질혈증", "심장병", "중풍", "기타"], k=random.randint(0, 2))
     session.past_cold_problem_area = random.sample(PAST_COLD_PROBLEM_AREAS, k=random.randint(0, 2))
     session.aggravating_factors = random.sample(AGGRAVATING_FACTORS, k=random.randint(0, 3))
     session.relieving_factors = random.sample(RELIEVING_FACTORS, k=random.randint(0, 2))
     
+    # Additional Symptoms & Comorbidities (추가 증상 및 동반질환 - Pages 24-25)
+    session.additional_symptoms = get_random_additional_symptoms(count=random.randint(1, 2))
+    session.additional_comorbidities = get_random_comorbidities(count=random.randint(0, 2))
+    
     # Social History (사회력)
-    session.social_alcohol_freq = random.choice(["None (비음주)", "Week (주간)", "Daily (매일)"])
-    session.social_alcohol_amt = round(random.uniform(0, 5), 1) if session.social_alcohol_freq != "None (비음주)" else 0.0
+    session.social_alcohol_freq = random.choice(["비음주", "주간", "매일"])
+    session.social_alcohol_amt = round(random.uniform(0, 5), 1) if session.social_alcohol_freq != "비음주" else 0.0
     session.social_smoke_daily = round(random.uniform(0, 20), 1)
-    session.social_exercise_int = random.choice(["Low (저)", "Medium (중)", "High (고)"])
+    session.social_exercise_int = random.choice(["저", "중", "고"])
     session.social_exercise_time = random.randint(0, 120)
     
     # ===========================================
     # 4. WOMEN'S HEALTH (여성력)
     # ===========================================
-    if session.sex == "Female (여)":
+    if session.sex == "여":
         session.mens_cycle = random.randint(21, 35)
-        session.mens_regular = random.choice(["Regular (규칙)", "Irregular (불규칙)", "Menopause (폐경)"])
-        session.mens_amt = random.choice(["Light (적음)", "Normal (보통)", "Heavy (많음)"])
+        session.mens_regular = random.choice(["규칙", "불규칙", "폐경"])
+        session.mens_amt = random.choice(["적음", "보통", "많음"])
         session.mens_clot = random.choice([True, False])
-        session.mens_color = random.choice(["Pale (연함)", "Red (적색)", "Dark (흑자색)"])
+        session.mens_color = random.choice(["연함", "적색", "흑자색"])
         session.mens_duration = random.randint(3, 7)
         session.mens_pain_score = random.randint(0, 10)
     
     # ===========================================
     # 5. EXCRETION & DIET (배설 및 식사)
     # ===========================================
-    session.diet_speed = random.choice(["Fast <10min (빠름)", "Normal 20min (보통)", "Slow >30min (느림)"])
-    session.appetite = random.choice(["None (없음)", "Low (저하)", "Normal (보통)", "High (항진)"])
+    session.diet_speed = random.choice(["빠름 (<10분)", "보통 (20분)", "느림 (>30분)"])
+    session.appetite = random.choice(["없음", "저하", "보통", "항진"])
     session.diet_freq = random.choice([1, 2, 3, 4])
-    session.diet_regular = random.choice(["Regular (규칙적)", "Irregular (불규칙)"])
-    session.water_intake = random.choice(["<0.5L (0.5L 미만)", "0.5-1L", "1-2L", ">2L (2L 이상)"])
+    session.diet_regular = random.choice(["규칙적", "불규칙"])
+    session.water_intake = random.choice(["0.5L 미만", "0.5-1L", "1-2L", "2L 이상"])
     
-    session.stool_freq = random.choice(["1/day (1회/일)", "2-3/day (2-3회/일)", "Constipation (변비)"])
-    session.stool_form = random.choice(["Normal (보통)", "Loose (묽음/연변)", "Hard (굳음/경변)"])
+    session.stool_freq = random.choice(["1회/일", "2-3회/일", "변비"])
+    session.stool_form = random.choice(["보통", "묽음/연변", "굳음/경변"])
     session.stool_discomfort = random.choice([True, False])
-    session.stool_color = random.choice(["Yellow (황색)", "Brown (황갈색)", "Black (흑색)", "Green (녹색)"])
+    session.stool_color = random.choice(["황색", "황갈색", "흑색", "녹색"])
     
     session.urine_freq_day = random.randint(3, 12)
     session.urine_freq_night = random.randint(0, 4)
-    session.urine_stream = random.choice(["Normal (정상)", "Weak (약함)", "Intermittent (끊김)"])
+    session.urine_stream = random.choice(["정상", "약함", "끊김"])
     session.urine_residual = random.choice([True, False])
     session.urine_incontinence = random.choice([True, False])
-    session.urine_color = random.choice(["Clear (맑음)", "Yellow (황색)", "Reddish (적색/혈뇨)"])
+    session.urine_color = random.choice(["맑음", "황색", "적색/혈뇨"])
     
     # ===========================================
     # 6. SLEEP, SWEAT, COLD/HEAT (수면, 땀, 한열)
     # ===========================================
     session.sleep_hours = random.randint(4, 10)
-    session.sleep_waking_state = random.choice(["Refreshed (개운함)", "Tired (피곤함)", "Heavy (무거움)"])
-    session.sleep_depth = random.choice(["Deep (깊음)", "Shallow/Light (얕음)"])
+    session.sleep_waking_state = random.choice(["개운함", "피곤함", "무거움"])
+    session.sleep_depth = random.choice(["깊음", "얕음"])
     session.insomnia_onset = random.choice([True, False])
     session.insomnia_maintain = random.choice([True, False])
     session.insomnia_reentry = random.choice([True, False])
-    session.dreams = random.choice(["Rare (거의 없음)", "Sometimes (가끔)", "Frequent (자주)", "Nightmares (악몽)"])
+    session.dreams = random.choice(["거의 없음", "가끔", "자주", "악몽"])
     
-    session.sweat_amt = random.choice(["None (무한 無汗)", "Normal (보통)", "Excessive (다한 多汗)"])
-    session.sweat_area = random.choice(["General (전신)", "Head (두부)", "Night (야간/도한)"])
-    session.sweat_feeling = random.choice(["Refreshed (상쾌)", "Tired/Cold (피곤/냉함)", "Hot (열감)"])
+    session.sweat_amt = random.choice(["무한 (無汗)", "보통", "다한 (多汗)"])
+    session.sweat_area = random.choice(["전신", "두부", "야간/도한"])
+    session.sweat_feeling = random.choice(["상쾌", "피곤/냉함", "열감"])
     
-    session.cold_heat_pref = random.choice(["Cold Sens (오한/추위탐)", "Balanced (보통)", "Heat Sens (열감/더위탐)"])
-    session.drink_temp = random.choice(["Icy (냉수)", "Warm (온수)", "Hot (열수)"])
+    session.cold_heat_pref = random.choice(["오한/추위탐", "보통", "열감/더위탐"])
+    session.drink_temp = random.choice(["냉수", "온수", "열수"])
     
     # ===========================================
     # 7. MENTAL, SENSORY & INSPECTION
@@ -629,26 +894,26 @@ def randomize_inputs(st):
     session.emot_thought = random.randint(1, 5)
     session.emot_grief = random.randint(1, 5)
     
-    session.fatigue_level = random.choice(["None (없음)", "Low (약함)", "Moderate (중등도)", "Severe (심함)"])
-    session.voice_vol = random.choice(["Soft (작음)", "Normal (보통)", "Loud (큼)"])
+    session.fatigue_level = random.choice(["없음", "약함", "중등도", "심함"])
+    session.voice_vol = random.choice(["작음", "보통", "큼"])
     session.voice_vol_slider = random.randint(1, 3)
     
-    session.memory = random.choice(["Good (좋음)", "Forgetful (건망)", "Bad (나쁨)"])
-    session.motivation = random.choice(["High (높음)", "Normal (보통)", "Low (낮음)", "Apathetic (무기력)"])
-    session.stress_coping = random.choice(["Good (좋음)", "Average (보통)", "Poor (나쁨)"])
+    session.memory = random.choice(["좋음", "건망", "나쁨"])
+    session.motivation = random.choice(["높음", "보통", "낮음", "무기력"])
+    session.stress_coping = random.choice(["좋음", "보통", "나쁨"])
     
-    session.edema = random.choice(["None (없음)", "Face (안면)", "Legs (하지)", "General (전신)"])
-    session.bruising = random.choice(["Normal (정상)", "Easy (잘듦)", "Spontaneous (절로 생김)"])
+    session.edema = random.choice(["없음", "안면", "하지", "전신"])
+    session.bruising = random.choice(["정상", "잘듦", "절로 생김"])
     session.limb_weakness = random.choice([True, False])
     session.vision_blackout = random.choice([True, False])
     
-    session.body_solidity = random.choice(["Soft (물렁)", "Normal (보통)", "Solid (단단)"])
-    session.face_color = random.choice(["Normal (정상)", "Pale (창백)", "Red (홍조)", "Yellow (황달)", "Dark (암색)"])
-    session.face_gloss = random.choice(["Dull (칙칙)", "Normal (보통)", "Shiny (윤기)"])
+    session.body_solidity = random.choice(["물렁", "보통", "단단"])
+    session.face_color = random.choice(["정상", "창백", "홍조", "황달", "암색"])
+    session.face_gloss = random.choice(["칙칙", "보통", "윤기"])
     session.eye_red = random.choice([True, False])
     session.lip_dry = random.choice([True, False])
     
-    session.skin_dry = random.choice(["Normal (정상)", "Dry (건조)", "Scaly (각질)"])
+    session.skin_dry = random.choice(["정상", "건조", "각질"])
     session.skin_itch = random.choice([True, False])
     
     session.tinnitus_freq = random.randint(0, 5)
@@ -656,7 +921,7 @@ def randomize_inputs(st):
     session.hearing_sev = random.randint(0, 5)
     session.dizziness_sev = random.randint(0, 5)
     
-    session.lip_color = random.choice(["Normal (정상)", "Pale (창백)", "Red (붉음)", "Dark (어두움)"])
+    session.lip_color = random.choice(["정상", "창백", "붉음", "어두움"])
     session.mouth_dry = random.randint(0, 5)
     session.throat_dry = random.choice([True, False])
     session.mouth_bitter = random.choice([True, False])
@@ -666,7 +931,7 @@ def randomize_inputs(st):
     session.neck_nape_freq = random.randint(0, 5)
     session.neck_nape_sev = random.randint(0, 5)
     
-    session.breath_sound = random.choice(["Normal (정상)", "Loud (큼)", "Weak (약함)"])
+    session.breath_sound = random.choice(["정상", "큼", "약함"])
     session.palpitation = random.randint(0, 5)
     session.chest_tight_freq = random.randint(0, 5)
     session.chest_tight_sev = random.randint(0, 5)
@@ -675,33 +940,33 @@ def randomize_inputs(st):
     session.sighing_freq = random.randint(0, 5)
     session.nausea = random.randint(0, 5)
     session.bloating = random.randint(0, 5)
-    session.flatulence = random.choice(["None (없음)", "Normal (보통)", "Frequent (잦음)"])
+    session.flatulence = random.choice(["없음", "보통", "잦음"])
     
     session.lower_abd_discomfort = random.randint(0, 5)
     session.abd_pain_sev = random.randint(0, 5)
-    session.abd_pain_type = random.choice(["None (없음)", "Dull (둔통)", "Sharp (예리통)", "Cramping (산통/경련통)"])
+    session.abd_pain_type = random.choice(["없음", "둔통", "예리통", "산통/경련통"])
     session.abd_tenderness = random.choice([True, False])
     session.nausea_sev = random.randint(0, 5)
     session.belching = random.randint(0, 5)
-    session.belching_smell = random.choice(["None (없음)", "Sour (신맛/산취)", "Foul (부패취)"])
+    session.belching_smell = random.choice(["없음", "신맛/산취", "부패취"])
     session.food_stag_sev = random.randint(0, 5)
     session.abd_muscle_tension = random.choice([True, False])
     session.abd_mass = random.choice([True, False])
     session.abd_pulsation = random.choice([True, False])
-    session.bowel_sound = random.choice(["Normal (정상)", "Hyperactive (항진)", "Hypoactive (저하)"])
+    session.bowel_sound = random.choice(["정상", "항진", "저하"])
     
-    session.cold_heat_body = random.choice(["Cold (한 寒)", "Balanced (보통)", "Hot (열 熱)"])
-    session.cold_heat_distribution = random.choice(["Even (균등)", "Upper Hot (상열 上熱)", "Lower Cold (하한 下寒)", "Upper Hot Lower Cold (상열하한 上熱下寒)"])
+    session.cold_heat_body = random.choice(["한 (寒)", "보통", "열 (熱)"])
+    session.cold_heat_distribution = random.choice(["균등", "상열 (上熱)", "하한 (下寒)", "상열하한 (上熱下寒)"])
     session.cold_sensitivity = random.randint(1, 5)
     session.heat_sensitivity = random.randint(1, 5)
     
-    session.physical_strength = random.choice(["Weak (허약)", "Normal (보통)", "Strong (강건)"])
-    session.condition_bad_area = random.sample(["Head (두부)", "Stomach (위장)", "Back (요배부)", "Limbs (사지)"], k=random.randint(0, 2))
+    session.physical_strength = random.choice(["허약", "보통", "강건"])
+    session.condition_bad_area = random.sample(["두부", "위장", "요배부", "사지"], k=random.randint(0, 2))
     
-    session.sweat_time = random.choice(["Daytime (주간)", "Night (야간/도한)", "Exercise (운동시)"])
+    session.sweat_time = random.choice(["주간", "야간/도한", "운동시"])
     
-    session.mental_clarity = random.choice(["Clear (맑음/청명)", "Foggy (흐릿/혼미)", "Confused (혼란)"])
-    session.mood_swing = random.choice(["Stable (안정)", "Mild (약간)", "Severe (심함)"])
+    session.mental_clarity = random.choice(["맑음/청명", "흐릿/혼미", "혼란"])
+    session.mood_swing = random.choice(["안정", "약간", "심함"])
     session.emot_startle = random.randint(1, 5)
     
     session.flank_freq = random.randint(0, 5)
@@ -751,22 +1016,26 @@ def randomize_inputs(st):
     
     # ===========================================
     # 10. DISEASE & PATTERN SELECTION
+    # NOTE: Only 감기 and 알레르기비염 have CSV rules ready
+    # So we only randomize to these two diseases for now
     # ===========================================
-    disease_opts = ["Common Cold (감기/급성상기도감염)", "Allergic Rhinitis (알레르기비염)", "Back Pain (요통)", "Functional Dyspepsia (기능성소화불량)"]
-    session.disease = random.choice(disease_opts)
+    # Only select from supported diseases (Cold and Rhinitis)
+    supported_disease_opts = [
+        "Common Cold (감기/급성상기도감염)", 
+        "Allergic Rhinitis (알레르기비염)"
+    ]
+    session.disease = random.choice(supported_disease_opts)
     
     if "Cold" in session.disease:
         num_patterns = len(DISEASE_PATTERNS["감기"]["patterns"])
         session.pattern_idx = random.randint(0, num_patterns - 1)
+        # Try to use CSV-based randomization for Cold
+        _apply_csv_cold_randomization(st)
     elif "Rhinitis" in session.disease:
         num_patterns = len(DISEASE_PATTERNS["알레르기비염"]["patterns"])
         session.pattern_idx = random.randint(0, num_patterns - 1)
-    elif "Back Pain" in session.disease:
-        num_patterns = len(DISEASE_PATTERNS["요통"]["patterns"])
-        session.pattern_idx = random.randint(0, num_patterns - 1)
-    elif "Dyspepsia" in session.disease:
-        num_patterns = len(DISEASE_PATTERNS["기능성소화불량"]["patterns"])
-        session.pattern_idx = random.randint(0, num_patterns - 1)
+        # Try to use CSV-based randomization for Rhinitis
+        _apply_csv_rhinitis_randomization(st)
     
     # ===========================================
     # 11. APPLY CONSTRAINT RULES
@@ -774,5 +1043,77 @@ def randomize_inputs(st):
     # NOT during patient generation (after widgets are rendered)
     # because Streamlit prevents modifying widget-bound session_state
     # ===========================================
+    log_layer_start("LAYER 3: Constraint Rules")
     apply_constraint_rules(st)
+    log_layer_start("LAYER 4: Symptom Correlation Rules")
     apply_symptom_correlation_rules(st.session_state)
+    
+    # ===========================================
+    # FINAL SAFETY CLAMP: Ensure all values are within UI bounds
+    # This prevents Streamlit errors when widget values < min_value
+    # ===========================================
+    log_layer_start("LAYER 5: UI Bounds Safety Clamp")
+    session = st.session_state
+    # Age: UI min=10, max=100
+    session.age = max(10, min(100, session.age))
+    # Height: UI min=130, max=220
+    session.height = max(130, min(220, session.height))
+    # Weight: UI min=30, max=150
+    session.weight = max(30, min(150, session.weight))
+    # SBP: UI min=90, max=180
+    session.sbp = max(90, min(180, session.sbp))
+    # DBP: UI min=50, max=120
+    session.dbp = max(50, min(120, session.dbp))
+    # Pulse: UI min=50, max=130
+    session.pulse_rate = max(50, min(130, session.pulse_rate))
+    # Temp: UI min=35.0, max=40.5
+    session.temp = max(35.0, min(40.5, session.temp))
+    # Resp: UI min=8, max=30
+    session.resp = max(8, min(30, session.resp))
+    
+    log_layer_start("RANDOMIZATION COMPLETE")
+    log_value_set("FINAL history_conditions", st.session_state.history_conditions, "After all layers")
+
+
+def _apply_csv_cold_randomization(st):
+    """Apply CSV-based randomization for Common Cold (감기)."""
+    if not CSV_RULES_AVAILABLE:
+        return
+    
+    session = st.session_state
+    
+    # Get the pattern name for CSV lookup
+    patterns = DISEASE_PATTERNS["감기"]["patterns"]
+    idx = session.get("pattern_idx", 0)
+    if 0 <= idx < len(patterns):
+        pattern_name = patterns[idx]["name"]  # e.g., "풍한형" or "풍열형"
+    else:
+        pattern_name = None
+    
+    # Use CSV-based randomization
+    success = randomize_from_csv_rules(st, "감기", pattern_name)
+    if not success:
+        print("Warning: CSV randomization failed for 감기, using fallback")
+
+
+def _apply_csv_rhinitis_randomization(st):
+    """Apply CSV-based randomization for Allergic Rhinitis (알레르기비염)."""
+    if not CSV_RULES_AVAILABLE:
+        return
+    
+    session = st.session_state
+    
+    # Get the pattern/prescription name for CSV lookup
+    patterns = DISEASE_PATTERNS["알레르기비염"]["patterns"]
+    idx = session.get("pattern_idx", 0)
+    if 0 <= idx < len(patterns):
+        # For rhinitis, we use prescription name as pattern (e.g., "소청룡탕")
+        prescriptions = patterns[idx].get("prescriptions", [])
+        pattern_name = prescriptions[0] if prescriptions else None
+    else:
+        pattern_name = None
+    
+    # Use CSV-based randomization
+    success = randomize_from_csv_rules(st, "알레르기비염", pattern_name)
+    if not success:
+        print("Warning: CSV randomization failed for 알레르기비염, using fallback")

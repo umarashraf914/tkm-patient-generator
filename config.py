@@ -54,7 +54,7 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 인구학적정보 (Demographics) - Page 17
     # ===========================================
-    "age": 45, "sex": "Male (남)", "job": "Manual Labor (현장직)",
+    "age": 45, "sex": "남", "job": "현장직",
     "height": 175, "weight": 70,  # 키, 몸무게 -> BMI calculated
     
     # ===========================================
@@ -65,8 +65,8 @@ SESSION_DEFAULTS = {
     # ===========================================
     # O/S 경과 (Onset/History) - Page 17
     # ===========================================
-    "onset": "1 week ago (1주 전)",  # 증상 발현시점
-    "course": "Worsening (악화중)",  # 경과
+    "onset": "1주 전",  # 증상 발현시점
+    "course": "악화중",  # 경과
     "past_illness": [],  # 과거 질병 경험
     "past_cold_problem_area": [],  # 과거 감기증상 시 문제가 되는 부위
     "aggravating_factors": [],  # 악화요인
@@ -91,7 +91,7 @@ SESSION_DEFAULTS = {
     # 사회력 (Social History) - Page 18
     # ===========================================
     # 술 (Alcohol)
-    "social_alcohol_freq": "None (비음주)",  # 월간 음주 횟수
+    "social_alcohol_freq": "비음주",  # 월간 음주 횟수
     "social_alcohol_amt": 0.0,  # 1회당 음주량
     # 담배 (Smoking)
     "social_smoke_daily": 0.0,  # 일간 개피
@@ -99,35 +99,35 @@ SESSION_DEFAULTS = {
     # 운동 (Exercise)
     "social_exercise_freq": 0,  # 주간 횟수
     "social_exercise_time": 0,  # 1회당 평균 운동 시간
-    "social_exercise_int": "Medium (중)",  # 운동 강도
+    "social_exercise_int": "중",  # 운동 강도
 
     # ===========================================
     # 여성력 (Women's Health) - Page 18 (가임기 여성 14-50세만)
     # ===========================================
     "mens_cycle": 28,  # 생리주기
-    "mens_regular": "Regular (규칙)",  # 생리규칙성
+    "mens_regular": "규칙",  # 생리규칙성
     "mens_duration": 5,  # 생리기간
-    "mens_amt": "Normal (보통)",  # 생리 양
+    "mens_amt": "보통",  # 생리 양
     "mens_pain_score": 0,  # 생리통강도 (0-10)
     "mens_clot": False,  # 생리혈 덩어리여부
-    "mens_color": "Red (적색)",  # 생리혈 색
+    "mens_color": "적색",  # 생리혈 색
 
     # ===========================================
     # 식사 (Diet) - Page 18
     # ===========================================
     "diet_freq": 3,  # 1일 식사횟수
-    "diet_regular": "Regular (규칙적)",  # 식사 규칙성
-    "diet_amt": "Normal (보통)",  # 1일 평균 식사량
-    "diet_speed": "Normal (20min)",  # 1회 평균식사시간
-    "digestion": "Normal (보통)",  # 소화여부/소화정도
-    "appetite": "Normal",  # 입맛
+    "diet_regular": "규칙적",  # 식사 규칙성
+    "diet_amt": "보통",  # 1일 평균 식사량
+    "diet_speed": "보통",  # 1회 평균식사시간
+    "digestion": "보통",  # 소화여부/소화정도
+    "appetite": "보통",  # 입맛
 
     # ===========================================
     # 대변 (Stool) - Page 18-19
     # ===========================================
-    "stool_freq": "1/day",  # 대변 횟수
-    "stool_color": "Brown (황갈색)",  # 대변 색
-    "stool_form": "Normal (보통)",  # 대변 굵기(형태)
+    "stool_freq": "1회/일",  # 대변 횟수
+    "stool_color": "황갈색",  # 대변 색
+    "stool_form": "보통",  # 대변 굵기(형태)
     "stool_discomfort": False,  # 배변 후 불편감
     "stool_residual": 0,  # 배변 후 잔변감(강도) 0-5
 
@@ -136,8 +136,8 @@ SESSION_DEFAULTS = {
     # ===========================================
     "urine_freq_day": 5,  # 1일 소변 횟수
     "urine_freq_night": 0,  # 야간뇨 횟수
-    "urine_color": "Yellow (황색)",  # 소변 색
-    "urine_stream": "Normal (정상)",  # 소변 굵기(소변줄기)
+    "urine_color": "황색",  # 소변 색
+    "urine_stream": "정상",  # 소변 굵기(소변줄기)
     "urine_discomfort": False,  # 소변 후 불편감
     "urine_residual": False,  # 배뇨 후 잔뇨감
     "urine_residual_sev": 0,  # 잔뇨감 강도 0-5
@@ -146,11 +146,11 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 수면상태 (Sleep) - Page 19
     # ===========================================
-    "sleep_waking_state": "Refreshed (개운함)",  # 기상시 상쾌도
+    "sleep_waking_state": "개운함",  # 기상시 상쾌도
     "sleep_hours": 7,  # 수면 시간
-    "sleep_depth": "Deep (깊음)",  # 수면 깊이
+    "sleep_depth": "깊음",  # 수면 깊이
     "insomnia_freq": 0,  # 불면 빈도 (0-5)
-    "dreams": "Rare (거의 없음)",  # 꿈의 빈도 및 내용
+    "dreams": "거의 없음",  # 꿈의 빈도 및 내용
     "insomnia_onset": False,  # 입면장애
     "insomnia_maintain": False,  # 수면 중도 각성
     "insomnia_maintain_count": 0,  # 수면 중도 각성 횟수
@@ -159,29 +159,29 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 땀 (Sweat) - Page 19
     # ===========================================
-    "sweat_amt": "Normal (보통)",  # 일상 생활에서 땀 량
-    "sweat_time": "Daytime (주간)",  # 땀나는 시간대
-    "sweat_area": "General (전신)",  # 땀나는 부위
-    "sweat_feeling": "Normal (상쾌)",  # 땀 흘린 뒤 느낌
+    "sweat_amt": "보통",  # 일상 생활에서 땀 량
+    "sweat_time": "주간",  # 땀나는 시간대
+    "sweat_area": "전신",  # 땀나는 부위
+    "sweat_feeling": "상쾌",  # 땀 흘린 뒤 느낌
 
     # ===========================================
     # 한열경향 (Cold/Heat Tendency) - Page 19
     # ===========================================
-    "cold_heat_body": "Balanced (보통)",  # 인체 한열(몸이 차고 더운 정도)
-    "cold_heat_distribution": "Even (균등)",  # 한열의 편재(상열하한)
-    "drink_temp": "Warm (따뜻한 물)",  # 음료 온도 선호도
+    "cold_heat_body": "보통",  # 인체 한열(몸이 차고 더운 정도)
+    "cold_heat_distribution": "균등",  # 한열의 편재(상열하한)
+    "drink_temp": "온수",  # 음료 온도 선호도
     "cold_sensitivity": 3,  # 주위 민감도 (1-5)
     "heat_sensitivity": 3,  # 더위 민감도 (1-5)
-    "cold_heat_pref": "Balanced (보통)",  # Legacy compatibility
+    "cold_heat_pref": "보통",  # Legacy compatibility
 
     # ===========================================
     # 전신상태 (General Condition) - Page 19
     # ===========================================
-    "body_solidity": "Solid (단단)",  # 물살/단단
-    "physical_strength": "Normal (보통)",  # 체력강약
-    "fatigue_level": "Low (약함)",  # 피로감
-    "edema": "None (없음)",  # 부종여부
-    "bruising": "Normal (정상)",  # 인체 부위의 출혈/멍듦
+    "body_solidity": "단단",  # 물살/단단
+    "physical_strength": "보통",  # 체력강약
+    "fatigue_level": "약함",  # 피로감
+    "edema": "없음",  # 부종여부
+    "bruising": "정상",  # 인체 부위의 출혈/멍듦
     "condition_bad_area": [],  # 평소 컨디션이 안좋을 때 불편한 부위
     "limb_weakness": False,  # 사지 무력감
 
@@ -189,14 +189,14 @@ SESSION_DEFAULTS = {
     # 피부상태 (Skin Condition) - Page 19
     # ===========================================
     "skin_trouble": False,  # 피부트러블
-    "skin_dry": "Normal (정상)",  # 피부 건조도
+    "skin_dry": "정상",  # 피부 건조도
     "skin_itch": False,  # 피부 가려움
 
     # ===========================================
     # 얼굴 (Face) - Page 17
     # ===========================================
-    "face_color": "Normal",  # 얼굴 색
-    "face_gloss": "Normal",  # 얼굴 광택
+    "face_color": "정상",  # 얼굴 색
+    "face_gloss": "정상",  # 얼굴 광택
 
     # ===========================================
     # 눈 (Eyes) - Page 17
@@ -215,9 +215,9 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 구강/목 (Mouth/Throat) - Page 17-18
     # ===========================================
-    "lip_color": "Normal (정상)",  # 입술 색
+    "lip_color": "정상",  # 입술 색
     "lip_dry": False,  # 입술 건조
-    "water_intake": "Normal (1-1.5L)",  # 음수량
+    "water_intake": "1-2L",  # 음수량
     "mouth_dry": 0,  # 입마름 정도(구건/구갈) 0-5
     "throat_dry": False,  # 인후 건조
     "mouth_bitter": False,  # 구고(입이 씀)
@@ -238,7 +238,7 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 흉부 (Chest) - Page 18
     # ===========================================
-    "breath_sound": "Normal (정상)",  # 호흡소리 크기
+    "breath_sound": "정상",  # 호흡소리 크기
     "palpitation": 0,  # 흉부 두근거림 0-5
     "chest_tight_freq": 0,  # 흉부 답답함(빈도) 0-5
     "chest_tight_sev": 0,  # 흉부 답답함(강도) 0-5
@@ -247,23 +247,23 @@ SESSION_DEFAULTS = {
     "sighing_freq": 0,  # 한숨 빈도 0-5
     "nausea": 0,  # 구역감/구토 0-5
     "bloating": 0,  # 복만/가스 참(강도) 0-5
-    "flatulence": "Normal (보통)",  # 방귀
+    "flatulence": "보통",  # 방귀
 
     # ===========================================
     # 기능성 소화불량 (Functional Dyspepsia) - Page 18
     # ===========================================
     "lower_abd_discomfort": 0,  # 아랫배 불편감(강도) 0-5
     "abd_pain_sev": 0,  # 전복부 통증(강도) 0-5
-    "abd_pain_type": "None",  # 복통의 양상
+    "abd_pain_type": "없음",  # 복통의 양상
     "abd_tenderness": False,  # 눌렀을 때 복부 압통
     "nausea_sev": 0,  # 메스꺼움(강도) 0-5
     "belching": 0,  # 트림 0-5
-    "belching_smell": "None (없음)",  # 트림 시 냄새
+    "belching_smell": "없음",  # 트림 시 냄새
     "food_stag_sev": 0,  # 체한(강도) 0-5
     "abd_muscle_tension": False,  # 복직근 긴장감
     "abd_mass": False,  # 복부 덩어리 만져짐
     "abd_pulsation": False,  # 동계
-    "bowel_sound": "Normal (정상)",  # 장명(장에서 나는 소리)
+    "bowel_sound": "정상",  # 장명(장에서 나는 소리)
 
     # ===========================================
     # 옆구리/등/골반 (Flank/Back/Pelvis) - Page 18
@@ -289,11 +289,11 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 정신상태 (Mental State) - Page 19
     # ===========================================
-    "mental_clarity": "Clear (맑음)",  # 정신상태
-    "memory": "Good (좋음)",  # 기억력
-    "motivation": "Normal (보통)",  # 의욕
-    "stress_coping": "Average (보통)",  # 스트레스 대처력
-    "mood_swing": "Stable (안정)",  # 감정 기복
+    "mental_clarity": "맑음",  # 정신상태
+    "memory": "좋음",  # 기억력
+    "motivation": "보통",  # 의욕
+    "stress_coping": "보통",  # 스트레스 대처력
+    "mood_swing": "안정",  # 감정 기복
 
     # ===========================================
     # 성격/성양 (Personality) - Page 19
@@ -306,7 +306,7 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 감정상태 (Emotional State) - Page 19
     # ===========================================
-    "voice_vol": "Normal (보통)",  # 목소리크기(성음크기)
+    "voice_vol": "보통",  # 목소리크기(성음크기)
     "excitement": 3,  # 흥분정도(차분함) 1-5
     "emot_anger": 1,  # 노(화냄/평온) 1-5
     "emot_depress": 1,  # 우울(우울함) 1-5
@@ -319,26 +319,26 @@ SESSION_DEFAULTS = {
     # ===========================================
     # 맥 (Pulse Diagnosis) - Page 19
     # ===========================================
-    "pulse_depth": "Middle (중)",  # 맥 부침 정도(부침)
-    "pulse_width": "Medium (대)",  # 맥 폭 정도(대세)
-    "pulse_length": "Medium (장)",  # 맥 길이 정도(장단)
-    "pulse_smooth": "Normal (완)",  # 맥 부드럽고 거친 정도(활삽)
-    "pulse_strength": "Moderate (유력)",  # 세기
-    "pulse_tension": "Soft (유)",  # 맥 긴장도(현긴완)
+    "pulse_depth": "중맥",  # 맥 부침 정도(부침)
+    "pulse_width": "대맥",  # 맥 폭 정도(대세)
+    "pulse_length": "장",  # 맥 길이 정도(장단)
+    "pulse_smooth": "완맥",  # 맥 부드럽고 거친 정도(활삽)
+    "pulse_strength": "유력",  # 세기
+    "pulse_tension": "유",  # 맥 긴장도(현긴완)
 
     # ===========================================
     # 설 (Tongue) - Page 19
     # ===========================================
-    "tongue_color": "Pale Red (담홍)",  # 혀 색
-    "tongue_size": "Normal (정상)",  # 혀 크기
+    "tongue_color": "담홍",  # 혀 색
+    "tongue_size": "정상",  # 혀 크기
     "tongue_marks": False,  # 혀 흔적/치흔
 
     # ===========================================
     # 태 (Tongue Coat) - Page 19
     # ===========================================
-    "tongue_coat_color": "White (백태)",  # 설태 색
-    "tongue_coat_thick": "Thin (박태)",  # 설태 두께
-    "tongue_coat_particle": "Fine (윤)",  # 설태 입자크기
+    "tongue_coat_color": "백태",  # 설태 색
+    "tongue_coat_thick": "박태",  # 설태 두께
+    "tongue_coat_particle": "윤",  # 설태 입자크기
 
     # ===========================================
     # PAIN GRID (통증 부위별 빈도/강도)
@@ -374,13 +374,13 @@ SESSION_DEFAULTS = {
     # ===========================================
     # DIAGNOSIS & SPECIFICS (진단 및 특이사항)
     # ===========================================
-    "disease": "Common Cold (Acute URI) - 감기",
+    "disease": "감기/급성상기도감염",
     "pattern_idx": 0,
     
     # Cold Specifics (감기 특이사항) - Page 15, 39-40
     "fever_sev": 1, "chills_sev": 1, "snot_sev": 1, "cough_sev": 1,
     "phlegm_amt": 0,  # 가래 양
-    "phlegm_color": "None",  # 가래 색
+    "phlegm_color": "없음",  # 가래 색
     "sweating": False,  # 무한/유한
     "cold_symptoms_spec": [],
     
@@ -390,7 +390,7 @@ SESSION_DEFAULTS = {
     "cold_background_story": "",  # 경과: 감기 걸리게 된 배경, 당시 상황 (AI 자체 생성)
     "cold_sweating_check": False,  # 감기시 땀 유무 (검증 항목)
     "cold_dyspnea": False,  # 숨이 가쁨 (동반증상)
-    "snot_color": "None",  # 콧물 색 (콧물 있을 때만)
+    "snot_color": "없음",  # 콧물 색 (콧물 있을 때만)
     "smell_reduction": 0,  # 후각감퇴 (코막힘 있을 때만) 0-5
     "alternating_chills_fever": 0,  # 한열왕래 0-5 (Page 40: 배제규칙 적용)
     "body_ache_cold": False,  # 몸살 (신체통, 근육통, 관절통)
@@ -400,14 +400,14 @@ SESSION_DEFAULTS = {
     "sore_throat": False,  # 인후통
     
     # Page 40: 진찰 및 검사소견 (감기)
-    "exam_stethoscope": "Normal",  # 청진기를 이용한 호흡음 진찰소견
-    "exam_throat_visual": "Normal",  # 한의사의 망진/촉진을 통한 인후부 진찰소견
-    "exam_tongue_depressor": "Normal",  # 설압자를 이용한 편도 진찰소견
-    "exam_rhinoscope_finding": "Normal",  # 비경을 이용한 진찰소견
+    "exam_stethoscope": "정상",  # 청진기를 이용한 호흡음 진찰소견
+    "exam_throat_visual": "정상",  # 한의사의 망진/촉진을 통한 인후부 진찰소견
+    "exam_tongue_depressor": "정상",  # 설압자를 이용한 편도 진찰소견
+    "exam_rhinoscope_finding": "정상",  # 비경을 이용한 진찰소견
     
     # Rhinitis Specifics (비염 특이사항)
     "sneeze_sev": 1, "nose_block_sev": 1, "nose_itch_sev": 1, 
-    "snot_type": "Clear/Watery (맑은 콧물)",
+    "snot_type": "청수양 (淸水樣) - 맑은 콧물",
     
     # Back Pain Specifics (요통 특이사항) - Page 15-16
     "pain_sev": 1,

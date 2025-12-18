@@ -3,17 +3,7 @@
 TKM Patient Generator - Main Streamlit Application
 한의 임상 가상환자 시나리오 생성기
 
-This is the main entry point for the Streamlit application.
-All logic is modularized into separate files for maintainability.
-
-Modules:
-- config.py: API keys, session state defaults
-- constants.py: KCD codes, disease patterns, frequent symptoms
-- constraint_rules.py: KTAS safety rules, clinical constraints
-- symptom_correlations.py: Page 36-38 correlation logic
-- randomizer.py: Randomization functions
-- patient_generator.py: LLM integration and patient generation
-- data_mappings.py: Clinical data mappings and descriptions
+Updated UI with sidebar controls and main content area with collapsible sections.
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
@@ -46,21 +36,86 @@ st.set_page_config(page_title="TKM Clinical Scenario Generator", layout="wide")
 init_session_state(st)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN UI SECTIONS
+# SIDEBAR
+# ═══════════════════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown("### ⚙️ Controls (조작)")
+    
+    # Randomize Button
+    if st.button("🎲 Randomize (랜덤 생성)", use_container_width=True, type="primary"):
+        randomize_inputs(st)
+        st.rerun()
+    
+    st.markdown("---")
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # DIAGNOSIS SECTION IN SIDEBAR
+    # ═══════════════════════════════════════════════════════════════════════════
+    st.markdown("### 📋 Diagnosis (진단명)")
+    
+    # Disease Selection
+    st.markdown("**Disease (질환명)**")
+    disease_opts = [
+        "Common Cold (감기/급성상기도감염)", 
+        "Allergic Rhinitis (알레르기비염)", 
+        "Back Pain (요통)", 
+        "Functional Dyspepsia (기능성소화불량)"
+    ]
+    st.selectbox("Disease", disease_opts, key="disease", label_visibility="collapsed")
+    
+    # Pattern Selection based on disease
+    disease_key = None
+    if "Cold" in st.session_state.disease:
+        disease_key = "감기"
+    elif "Rhinitis" in st.session_state.disease:
+        disease_key = "알레르기비염"
+    elif "Back Pain" in st.session_state.disease:
+        disease_key = "요통"
+    elif "Dyspepsia" in st.session_state.disease:
+        disease_key = "기능성소화불량"
+
+    if disease_key and disease_key in DISEASE_PATTERNS:
+        patterns = DISEASE_PATTERNS[disease_key]["patterns"]
+        pattern_display = [f"{p['name']} → {', '.join(p['prescriptions'])}" for p in patterns]
+        
+        if st.session_state.pattern_idx >= len(pattern_display):
+            st.session_state.pattern_idx = 0
+        
+        st.markdown("**Pattern/Prescription (변증/처방)**")
+        selected_pattern = st.selectbox(
+            "Pattern", 
+            pattern_display, 
+            index=st.session_state.pattern_idx,
+            label_visibility="collapsed"
+        )
+        st.session_state.pattern_idx = pattern_display.index(selected_pattern)
+        
+        # Display KCD code info
+        kcd_info = get_kcd_info(disease_key)
+        if kcd_info:
+            st.caption(f"📋 KCD (한국표준질병사인분류): {kcd_info['main_code']}")
+            with st.expander("KCD Details (KCD 상세정보 - Page 21-22)"):
+                st.markdown(f"**Main Code:** {kcd_info['main_code']}")
+                st.markdown("**Included:**")
+                for code, desc in kcd_info['sub_codes'].items():
+                    st.markdown(f"- {code}: {desc}")
+                st.markdown("**Excluded:**")
+                for excl in kcd_info['exclusions']:
+                    st.markdown(f"- ❌ {excl}")
+    
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# MAIN CONTENT AREA
 # ═══════════════════════════════════════════════════════════════════════════════
 
-st.title("🏥 TKM Clinical Scenario Generator")
-st.caption("한의 임상 가상환자 시나리오 생성기 | Based on Clinical Guidelines Pages 15-40")
-
-# --- RANDOMIZE BUTTON ---
-if st.button("🎲 Randomize All Inputs (무작위 입력)"):
-    randomize_inputs(st)
-    st.rerun()
+st.title("📋 TKM Clinical Scenario Generator (한의 임상시나리오 생성기)")
+st.caption("한의 임상정보 항목 기반 가상환자 생성 시스템 · Pages 15-19, 21-23 Compliant")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 1: Demographics & Vitals
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("1. Demographics & Vitals (인구학적정보 및 활력징후) - KTAS Safety Enforced", expanded=True):
+with st.expander("➤ Demographics & Vitals (인구학적정보 및 활력징후) - KTAS Safety Enforced", expanded=False):
     c1, c2, c3 = st.columns(3)
     with c1:
         st.number_input("Age (나이)", 1, 100, key="age")
@@ -77,7 +132,7 @@ with st.expander("1. Demographics & Vitals (인구학적정보 및 활력징후)
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 2: Medical History & Lifestyle
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("2. Medical History & Lifestyle (병력 및 생활습관) - Page 18", expanded=False):
+with st.expander("➤ Medical History & Lifestyle (병력 및 생활습관)", expanded=False):
     h1, h2 = st.columns(2)
     with h1:
         st.multiselect("현병력 (Current Medical History)", ["고혈압", "당뇨", "이상지질혈증", "기타"], key="history_conditions")
@@ -103,7 +158,7 @@ with st.expander("2. Medical History & Lifestyle (병력 및 생활습관) - Pag
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 3: Excretion & Diet
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("3. Excretion & Diet (배설 및 식사)", expanded=False):
+with st.expander("➤ Excretion & Diet (배설 및 식사)", expanded=False):
     d1, d2, d3 = st.columns(3)
     with d1:
         st.number_input("Urine Day (주간뇨 횟수)", 1, 15, key="urine_freq_day")
@@ -120,7 +175,7 @@ with st.expander("3. Excretion & Diet (배설 및 식사)", expanded=False):
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 4: Sleep, Sweat, Cold/Heat
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("4. Sleep, Sweat, Cold/Heat (수면, 땀, 한열경향)", expanded=False):
+with st.expander("➤ Sleep, Sweat, Cold/Heat (수면, 땀, 한열경향)", expanded=False):
     s1, s2, s3 = st.columns(3)
     with s1:
         st.selectbox("Waking State (기상시 상쾌도)", ["Refreshed (개운함)", "Tired (피곤함)", "Heavy (무거움)"], key="sleep_waking_state")
@@ -136,7 +191,7 @@ with st.expander("4. Sleep, Sweat, Cold/Heat (수면, 땀, 한열경향)", expan
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 5: Mental State & Physical Inspection
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("5. Mental State & Physical Inspection (정신상태 및 신체검진)", expanded=True):
+with st.expander("➤ Mental State & Physical Inspection (정신상태 및 신체검진)", expanded=False):
     m1, m2 = st.columns(2)
     with m1:
         st.markdown("**Mental State (정신상태)**")
@@ -161,7 +216,7 @@ with st.expander("5. Mental State & Physical Inspection (정신상태 및 신체
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 6: Pulse & Tongue Diagnosis
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("6. Pulse & Tongue Diagnosis (맥진 및 설진)", expanded=True):
+with st.expander("➤ Pulse & Tongue Diagnosis (맥진 및 설진)", expanded=False):
     p1, p2 = st.columns(2)
     with p1:
         st.markdown("**Pulse (맥진)**")
@@ -178,7 +233,7 @@ with st.expander("6. Pulse & Tongue Diagnosis (맥진 및 설진)", expanded=Tru
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 7: ROS Pain Grid
 # ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("7. ROS Pain Grid (통증 부위별 Review of Systems)", expanded=False):
+with st.expander("➤ ROS Pain Grid (통증 부위별 Review of Systems)", expanded=False):
     st.caption("Freq (빈도 0-5) / Int (강도 0-10)")
     cols = st.columns(3)
     parts = [("Neck (경항부)", "pain_neck"), ("Back (요배부)", "pain_back"), ("Knee (슬부)", "pain_knee"), ("Shldr (견부)", "pain_shoulder"), ("Elbow (주관절)", "pain_elbow"), ("Hand (수부)", "pain_hand")]
@@ -192,98 +247,58 @@ with st.expander("7. ROS Pain Grid (통증 부위별 Review of Systems)", expand
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 8: Chief Complaint Specifics
 # ═══════════════════════════════════════════════════════════════════════════════
-st.markdown("---")
-st.subheader("8. Chief Complaint Specifics (주소증 상세 - 변증지표)")
-
-# Disease Selection
-disease_opts = ["Common Cold (감기/급성상기도감염)", "Allergic Rhinitis (알레르기비염)", "Back Pain (요통)", "Functional Dyspepsia (기능성소화불량)"]
-st.selectbox("Disease (질환)", disease_opts, key="disease")
-
-# Pattern Selection based on disease
-disease_key = None
-if "Cold" in st.session_state.disease:
-    disease_key = "감기"
-elif "Rhinitis" in st.session_state.disease:
-    disease_key = "알레르기비염"
-elif "Back Pain" in st.session_state.disease:
-    disease_key = "요통"
-elif "Dyspepsia" in st.session_state.disease:
-    disease_key = "기능성소화불량"
-
-if disease_key and disease_key in DISEASE_PATTERNS:
-    patterns = DISEASE_PATTERNS[disease_key]["patterns"]
-    pattern_display = [f"{p['name']} → {', '.join(p['prescriptions'])}" for p in patterns]
-    
-    if st.session_state.pattern_idx >= len(pattern_display):
-        st.session_state.pattern_idx = 0
-    
-    selected_pattern = st.selectbox("Pattern/Prescription (변증/처방)", pattern_display, index=st.session_state.pattern_idx)
-    st.session_state.pattern_idx = pattern_display.index(selected_pattern)
-    
-    # Display KCD code info
-    kcd_info = get_kcd_info(disease_key)
-    if kcd_info:
-        st.caption(f"📋 KCD (한국표준질병사인분류): {kcd_info['main_code']}")
-        with st.expander("KCD Details (KCD 상세정보 - Page 21-22)", expanded=False):
-            st.markdown(f"**Main Code (주코드):** {kcd_info['main_code']}")
-            st.markdown("**Included (포함):**")
-            for code, desc in kcd_info['sub_codes'].items():
-                st.markdown(f"- {code}: {desc}")
-            st.markdown("**Excluded (배제):**")
-            for excl in kcd_info['exclusions']:
-                st.markdown(f"- ❌ {excl}")
+st.markdown("### 8. Chief Complaint Specifics (주소증 상세 - 변증지표)")
+st.caption("감기환자 변증지표 (Page 15 - 임상진료지침 기준)")
 
 # Disease-specific symptom inputs
 if "Cold" in st.session_state.disease:
-    st.caption("감기환자 변증지표 (Page 15 - 임상진료지침 기준)")
     c1, c2 = st.columns(2)
     with c1:
-        st.slider("발열 강도 (Fever 1-5)", 1, 5, key="fever_sev", help="1=미열/무열, 5=고열 壯熱")
-        st.slider("오한 강도 (Chills 1-5)", 1, 5, key="chills_sev", help="1=경미, 5=惡寒重")
+        st.slider("Fever Level (발열 강도: 1-5)", 1, 5, key="fever_sev", help="1=미열/무열, 5=고열 壯熱")
+        st.slider("Chills Level (오한 강도: 1-5)", 1, 5, key="chills_sev", help="1=경미, 5=惡寒重")
     with c2:
-        st.slider("콧물 양 (Runny Nose 1-5)", 1, 5, key="snot_sev", help="1=경미, 5=콧물 줄줄")
-        st.slider("기침 강도 (Cough 1-5)", 1, 5, key="cough_sev", help="1=경미, 5=기침 심함")
+        st.slider("Runny Nose (콧물 양: 1-5)", 1, 5, key="snot_sev", help="1=경미, 5=콧물 줄줄")
+        st.slider("Cough (기침 강도: 1-5)", 1, 5, key="cough_sev", help="1=경미, 5=기침 심함")
     
     cold_opts = ["무한 (無汗) - 풍한", "황담 (黃痰) - 풍열", "희박담 (稀薄白痰) - 풍한", "인후건조 (咽乾) - 풍조", "골절동통 (骨節疼痛) - 풍한", "객담소 (咳嗽少痰) - 풍조"]
-    st.multiselect("감기 증상 (Page 15)", cold_opts, key="cold_symptoms_spec")
+    st.multiselect("Cold Symptoms (감기 증상 - Page 15)", cold_opts, key="cold_symptoms_spec")
     
-    st.markdown("---")
-    st.caption("**📋 Page 39-40: 감기 가상환자 주증정보 필수항목**")
-    st.multiselect("감기주소증 유형 (최소 1개 이상)", COLD_CHIEF_TYPES, key="cold_chief_type")
-    
-    onset_opts = ["1일 전", "2일 전", "3일 전", "4일 전", "5일 전", "1주일 전", "2주일 전", "3주일 전"]
-    st.selectbox("발병일 (O/S 구체적)", onset_opts, key="cold_onset_specific")
-    
-    cold_col1, cold_col2, cold_col3 = st.columns(3)
-    with cold_col1:
-        st.checkbox("인후통 (Sore throat)", key="sore_throat")
-        st.checkbox("몸살 (Body ache)", key="body_ache_cold")
-        st.checkbox("신중/몸 무거움 (Body heaviness)", key="body_heaviness_cold")
-    with cold_col2:
-        st.checkbox("두통 (Headache)", key="headache_cold")
-        st.checkbox("경항통 (Neck pain)", key="neck_pain_cold")
-        st.checkbox("숨이 가쁨 (Dyspnea)", key="cold_dyspnea")
-    with cold_col3:
-        st.checkbox("땀 유무 (Sweating check)", key="cold_sweating_check")
-        st.slider("후각감퇴 (Smell reduction 0-5)", 0, 5, key="smell_reduction")
-    
-    st.slider("가래 양 (Phlegm amount 0-5)", 0, 5, key="phlegm_amt")
-    if st.session_state.get("phlegm_amt", 0) >= 2:
-        st.selectbox("가래 색 (Phlegm color)", ["Clear (맑음)", "White (백색)", "Yellow (황색)", "Green (녹색)"], key="phlegm_color")
-    
-    if st.session_state.get("snot_sev", 1) >= 2:
-        st.selectbox("콧물 색 (Snot color)", ["None", "Clear (맑음/투명)", "White (백색)", "Yellow (황색)", "Green (녹색)"], key="snot_color")
-    
-    st.slider("한열왕래 (Alternating chills-fever 0-5)", 0, 5, key="alternating_chills_fever")
-    
-    st.markdown("**진찰 및 검사소견 (Page 40)**")
-    exam_col1, exam_col2 = st.columns(2)
-    with exam_col1:
-        st.selectbox("청진기 호흡음 (Stethoscope)", COLD_EXAM_OPTIONS["stethoscope"], key="exam_stethoscope")
-        st.selectbox("인후부 망진/촉진", COLD_EXAM_OPTIONS["throat_visual"], key="exam_throat_visual")
-    with exam_col2:
-        st.selectbox("설압자 편도 소견", COLD_EXAM_OPTIONS["tongue_depressor"], key="exam_tongue_depressor")
-        st.selectbox("비경 소견", COLD_EXAM_OPTIONS["rhinoscope"], key="exam_rhinoscope_finding")
+    with st.expander("📋 Page 39-40: 감기 가상환자 주증정보 필수항목", expanded=False):
+        st.multiselect("감기주소증 유형 (최소 1개 이상)", COLD_CHIEF_TYPES, key="cold_chief_type")
+        
+        onset_opts = ["1일 전", "2일 전", "3일 전", "4일 전", "5일 전", "1주일 전", "2주일 전", "3주일 전"]
+        st.selectbox("발병일 (O/S 구체적)", onset_opts, key="cold_onset_specific")
+        
+        cold_col1, cold_col2, cold_col3 = st.columns(3)
+        with cold_col1:
+            st.checkbox("인후통 (Sore throat)", key="sore_throat")
+            st.checkbox("몸살 (Body ache)", key="body_ache_cold")
+            st.checkbox("신중/몸 무거움 (Body heaviness)", key="body_heaviness_cold")
+        with cold_col2:
+            st.checkbox("두통 (Headache)", key="headache_cold")
+            st.checkbox("경항통 (Neck pain)", key="neck_pain_cold")
+            st.checkbox("숨이 가쁨 (Dyspnea)", key="cold_dyspnea")
+        with cold_col3:
+            st.checkbox("땀 유무 (Sweating check)", key="cold_sweating_check")
+            st.slider("후각감퇴 (Smell reduction 0-5)", 0, 5, key="smell_reduction")
+        
+        st.slider("가래 양 (Phlegm amount 0-5)", 0, 5, key="phlegm_amt")
+        if st.session_state.get("phlegm_amt", 0) >= 2:
+            st.selectbox("가래 색 (Phlegm color)", ["Clear (맑음)", "White (백색)", "Yellow (황색)", "Green (녹색)"], key="phlegm_color")
+        
+        if st.session_state.get("snot_sev", 1) >= 2:
+            st.selectbox("콧물 색 (Snot color)", ["None", "Clear (맑음/투명)", "White (백색)", "Yellow (황색)", "Green (녹색)"], key="snot_color")
+        
+        st.slider("한열왕래 (Alternating chills-fever 0-5)", 0, 5, key="alternating_chills_fever")
+        
+        st.markdown("**진찰 및 검사소견 (Page 40)**")
+        exam_col1, exam_col2 = st.columns(2)
+        with exam_col1:
+            st.selectbox("청진기 호흡음 (Stethoscope)", COLD_EXAM_OPTIONS["stethoscope"], key="exam_stethoscope")
+            st.selectbox("인후부 망진/촉진", COLD_EXAM_OPTIONS["throat_visual"], key="exam_throat_visual")
+        with exam_col2:
+            st.selectbox("설압자 편도 소견", COLD_EXAM_OPTIONS["tongue_depressor"], key="exam_tongue_depressor")
+            st.selectbox("비경 소견", COLD_EXAM_OPTIONS["rhinoscope"], key="exam_rhinoscope_finding")
 
 elif "Rhinitis" in st.session_state.disease:
     st.caption("알레르기비염 변증지표 (Page 23 - 수체형)")
@@ -309,34 +324,29 @@ elif "Back Pain" in st.session_state.disease:
     st.multiselect("통증 양상 (Page 15/16)", pain_opts, key="pain_nature")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 9: Additional Symptoms (Pages 24-25)
+# Additional Symptoms & Correlations (Collapsed by default)
 # ═══════════════════════════════════════════════════════════════════════════════
-st.markdown("---")
-st.subheader("9. 추가 증상 및 동반질환 (Additional Symptoms - Pages 24-25)")
-st.caption("한의원 다빈도 증상 중 무작위 1-2개가 현실성을 위해 추가됩니다.")
+with st.expander("➤ Additional Symptoms & Comorbidities (추가 증상 및 동반질환 - Pages 24-25)", expanded=False):
+    st.caption("한의원 다빈도 증상 중 무작위 1-2개가 현실성을 위해 추가됩니다.")
+    col_add1, col_add2 = st.columns(2)
+    with col_add1:
+        st.multiselect("추가 증상 (Additional Symptoms)", get_all_symptom_options(), key="additional_symptoms")
+    with col_add2:
+        st.multiselect("추가 동반질환 (Additional Comorbidities)", FREQUENT_COMORBIDITIES, key="additional_comorbidities")
 
-col_add1, col_add2 = st.columns(2)
-with col_add1:
-    st.multiselect("추가 증상 (Additional Symptoms)", get_all_symptom_options(), key="additional_symptoms")
-with col_add2:
-    st.multiselect("추가 동반질환 (Additional Comorbidities)", FREQUENT_COMORBIDITIES, key="additional_comorbidities")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# SECTION 10: Symptom Correlations (Pages 36-38)
-# ═══════════════════════════════════════════════════════════════════════════════
-with st.expander("📊 증상간 상관관계 (Symptom Correlations - Pages 36-38)", expanded=False):
+with st.expander("➤ 📊 Symptom Correlations (증상간 상관관계 - Pages 36-38)", expanded=False):
     st.caption("**400명 임상한의사 차트리뷰 결과에 기반한 증상간 상관관계 규칙**")
     
     correlation_summary = get_correlation_summary()
     
     col_pos, col_neg = st.columns(2)
     with col_pos:
-        st.markdown("**✅ 양의 상관관계 (Positive Correlations)**")
+        st.markdown("**✅ Positive Correlations (양의 상관관계)**")
         for rule in correlation_summary["positive_correlations"]:
             st.markdown(f"- {rule}")
     
     with col_neg:
-        st.markdown("**❌ 음의 상관관계 (Negative Correlations - 배제규칙)**")
+        st.markdown("**❌ Negative Correlations (음의 상관관계 - 배제규칙)**")
         for rule in correlation_summary["negative_correlations"]:
             st.markdown(f"- {rule}")
     
@@ -352,8 +362,8 @@ with st.expander("📊 증상간 상관관계 (Symptom Correlations - Pages 36-3
         st.success("✅ 현재 환자 데이터가 상관관계 규칙과 일치합니다.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# GENERATE BUTTON
+# GENERATE BUTTON (at the end of main content)
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown("---")
-if st.button("🩺 가상환자 시나리오 생성", type="primary"):
+if st.button("✨ 가상환자 시나리오 생성", type="primary", use_container_width=True):
     generate_patient(st, genai)

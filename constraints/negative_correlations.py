@@ -32,6 +32,9 @@ def apply_negative_correlation_rules(session):
     Args:
         session: Streamlit session_state object
     """
+    # 0. Sex-Specific Rules (성별 관련) - 남성에게 월경 증상 배제
+    _apply_sex_specific_rules(session)
+    
     # 1. Appetite-Motivation Rules (식욕-의욕)
     _apply_appetite_motivation_rules(session)
     
@@ -58,6 +61,47 @@ def apply_negative_correlation_rules(session):
     
     # 9. Skin-Face Consistency (피부-얼굴 광택)
     _apply_skin_face_consistency_rules(session)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 0. SEX-SPECIFIC RULES (성별 관련)
+# 남성 환자에게 월경 관련 증상 배제
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _apply_sex_specific_rules(session):
+    """
+    Apply sex-specific rules to exclude gender-inappropriate symptoms.
+    
+    Rules:
+    - 남성 환자에게 월경통, 월경불순 등 여성 전용 증상 배제
+      (Male patients should not have menstrual symptoms)
+    """
+    # Female-only symptoms that should be excluded for male patients
+    female_only_symptoms = [
+        "월경통 (月經痛)",
+        "월경불순 (月經不順)",
+        "월경통",
+        "월경불순"
+    ]
+    
+    # Check if patient is male
+    is_male = getattr(session, 'sex', None) in ["남", "남자", "Male", "M"]
+    
+    if is_male:
+        # Filter out female-only symptoms from additional_symptoms
+        if hasattr(session, 'additional_symptoms') and session.additional_symptoms:
+            session.additional_symptoms = [
+                symptom for symptom in session.additional_symptoms
+                if not any(female_kw in symptom for female_kw in female_only_symptoms)
+            ]
+        
+        # Clear any menstrual-related fields
+        if hasattr(session, 'mens_cycle'):
+            delattr(session, 'mens_cycle')
+        if hasattr(session, 'mens_regular'):
+            delattr(session, 'mens_regular')
+        if hasattr(session, 'mens_pain'):
+            delattr(session, 'mens_pain')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

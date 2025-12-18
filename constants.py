@@ -307,7 +307,7 @@ def get_kcd_info(disease_key):
     return KCD_CODES.get(disease_key, None)
 
 
-def get_random_additional_symptoms(exclude_category=None, count=None, sex=None):
+def get_random_additional_symptoms(exclude_category=None, count=None, sex=None, age=None):
     """
     Get 1-2 random additional symptoms from the frequent TKM symptoms list.
     Used to add realistic comorbidity/symptoms to generated patients (Pages 24-25).
@@ -316,6 +316,7 @@ def get_random_additional_symptoms(exclude_category=None, count=None, sex=None):
         exclude_category: Category to exclude (e.g., "통증계" for back pain patients)
         count: Number of symptoms to add (default: random 1-2)
         sex: Patient's sex ("남" or "여") - used to exclude menstrual symptoms for males
+        age: Patient's age - used to exclude menstrual symptoms for young children
     
     Returns:
         List of additional symptom strings
@@ -323,18 +324,27 @@ def get_random_additional_symptoms(exclude_category=None, count=None, sex=None):
     if count is None:
         count = random.randint(1, 2)
     
-    # Menstrual symptoms to exclude for male patients
+    # Menstrual symptoms to exclude for male patients and young children (< 12)
     female_only_symptoms = [
         "월경통 (月經痛)",
         "월경불순 (月經不順)"
     ]
     
+    # Determine if menstrual symptoms should be excluded
+    # - Male patients: always exclude
+    # - Young children (under 12): exclude regardless of sex
+    exclude_menstrual = False
+    if sex == "남":
+        exclude_menstrual = True
+    if age is not None and age < 12:
+        exclude_menstrual = True
+    
     all_symptoms = []
     for category, symptoms in FREQUENT_TKM_SYMPTOMS.items():
         if category != exclude_category:
             for symptom in symptoms:
-                # Exclude menstrual symptoms for male patients
-                if sex == "남" and symptom in female_only_symptoms:
+                # Exclude menstrual symptoms if applicable
+                if exclude_menstrual and symptom in female_only_symptoms:
                     continue
                 all_symptoms.append(symptom)
     

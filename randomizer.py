@@ -822,8 +822,8 @@ def randomize_inputs(st):
     session.relieving_factors = random.sample(RELIEVING_FACTORS, k=random.randint(0, 2))
     
     # Additional Symptoms & Comorbidities (추가 증상 및 동반질환 - Pages 24-25)
-    # Pass sex parameter to exclude menstrual symptoms for male patients
-    session.additional_symptoms = get_random_additional_symptoms(count=random.randint(1, 2), sex=session.sex)
+    # Pass sex and age parameters to exclude menstrual symptoms for males and young children
+    session.additional_symptoms = get_random_additional_symptoms(count=random.randint(1, 2), sex=session.sex, age=session.age)
     session.additional_comorbidities = get_random_comorbidities(count=random.randint(0, 2))
     
     # Social History (사회력)

@@ -65,7 +65,7 @@ def apply_negative_correlation_rules(session):
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # 0. SEX-SPECIFIC RULES (성별 관련)
-# 남성 환자에게 월경 관련 증상 배제
+# 남성 환자 및 어린 아이에게 월경 관련 증상 배제
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _apply_sex_specific_rules(session):
@@ -75,24 +75,26 @@ def _apply_sex_specific_rules(session):
     Rules:
     - 남성 환자에게 월경통, 월경불순 등 여성 전용 증상 배제
       (Male patients should not have menstrual symptoms)
+    - 12세 미만 어린이에게 월경 관련 증상 배제
+      (Children under 12 should not have menstrual symptoms)
     """
-    # Female-only symptoms that should be excluded for male patients
-    female_only_symptoms = [
-        "월경통 (月經痛)",
-        "월경불순 (月經不順)",
-        "월경통",
-        "월경불순"
-    ]
+    # Female-only symptoms that should be excluded for male patients and young children
+    female_only_keywords = ["월경", "月經", "생리통", "생리불순"]
     
     # Check if patient is male
     is_male = getattr(session, 'sex', None) in ["남", "남자", "Male", "M"]
     
-    if is_male:
+    # Check if patient is a young child (under 12)
+    age = getattr(session, 'age', 20)
+    is_young_child = age < 12
+    
+    # Exclude menstrual symptoms for males OR young children
+    if is_male or is_young_child:
         # Filter out female-only symptoms from additional_symptoms
         if hasattr(session, 'additional_symptoms') and session.additional_symptoms:
             session.additional_symptoms = [
                 symptom for symptom in session.additional_symptoms
-                if not any(female_kw in symptom for female_kw in female_only_symptoms)
+                if not any(female_kw in symptom for female_kw in female_only_keywords)
             ]
         
         # Clear any menstrual-related fields

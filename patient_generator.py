@@ -25,8 +25,9 @@ def generate_patient(st, genai):
     # ═══════════════════════════════════════════════════════════════════
     # CHECK FOR SUPPORTED DISEASES
     # Currently only 감기 and 알레르기비염 have CSV generation rules
+    # Use Korean keywords to match UI dropdown options
     # ═══════════════════════════════════════════════════════════════════
-    supported_diseases = ["Cold", "Rhinitis"]
+    supported_diseases = ["감기", "비염"]  # Korean keywords
     is_supported = any(d in session.disease for d in supported_diseases)
     
     if not is_supported:
@@ -66,15 +67,16 @@ def generate_patient(st, genai):
     sleep_desc = get_desc("sleep_quality", 3) or "보통"
     
     # Get selected pattern name based on current disease and pattern index
+    # Use Korean keywords to match UI dropdown options
     selected_pattern = "N/A"
     disease_key = None
-    if "Cold" in session.disease:
+    if "감기" in session.disease:
         disease_key = "감기"
-    elif "Rhinitis" in session.disease:
+    elif "비염" in session.disease:
         disease_key = "알레르기비염"
-    elif "Back Pain" in session.disease:
+    elif "요통" in session.disease:
         disease_key = "요통"
-    elif "Dyspepsia" in session.disease:
+    elif "소화불량" in session.disease:
         disease_key = "기능성소화불량"
     
     if disease_key and disease_key in DISEASE_PATTERNS:

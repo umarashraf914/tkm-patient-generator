@@ -2,6 +2,8 @@
 ═══════════════════════════════════════════════════════════════════════════════
 TKM Patient Generator - Disease-Specific Prompt Sections
 Prompt templates for each disease type
+
+NOTE: All disease checks use Korean keywords to match UI dropdown options
 ═══════════════════════════════════════════════════════════════════════════════
 """
 
@@ -20,7 +22,8 @@ def get_cold_symptoms_section(session, fever_desc, chills_desc, snot_desc, cough
     Returns:
         Formatted cold symptoms section string, or empty string if not cold
     """
-    if "Cold" not in session.disease:
+    # Use Korean keyword for disease check
+    if "감기" not in session.disease:
         return ""
     
     return f"""
@@ -49,7 +52,8 @@ def get_rhinitis_symptoms_section(session, sneeze_desc, nose_block_desc, nose_it
     Returns:
         Formatted rhinitis symptoms section string, or empty string if not rhinitis
     """
-    if "Rhinitis" not in session.disease:
+    # Use Korean keyword for disease check
+    if "비염" not in session.disease:
         return ""
     
     return f"""
@@ -72,7 +76,8 @@ def get_back_pain_symptoms_section(session):
     Returns:
         Formatted back pain symptoms section string, or empty string if not back pain
     """
-    if "Back Pain" not in session.disease:
+    # Use Korean keyword for disease check
+    if "요통" not in session.disease:
         return ""
     
     return f"""
@@ -95,7 +100,8 @@ def get_dyspepsia_symptoms_section(session):
     Returns:
         Formatted dyspepsia symptoms section string, or empty string if not dyspepsia
     """
-    if "Dyspepsia" not in session.disease:
+    # Use Korean keyword for disease check
+    if "소화불량" not in session.disease:
         return ""
     
     return f"""
@@ -123,7 +129,8 @@ def get_all_disease_symptoms(session, symptom_descriptions):
     """
     sections = []
     
-    if "Cold" in session.disease:
+    # Use Korean keywords for disease checks
+    if "감기" in session.disease:
         sections.append(get_cold_symptoms_section(
             session,
             symptom_descriptions.get('fever', ''),
@@ -132,7 +139,7 @@ def get_all_disease_symptoms(session, symptom_descriptions):
             symptom_descriptions.get('cough', '')
         ))
     
-    if "Rhinitis" in session.disease:
+    if "비염" in session.disease:
         sections.append(get_rhinitis_symptoms_section(
             session,
             symptom_descriptions.get('sneeze', ''),
@@ -141,10 +148,10 @@ def get_all_disease_symptoms(session, symptom_descriptions):
             symptom_descriptions.get('rhinitis_snot', '')
         ))
     
-    if "Back Pain" in session.disease:
+    if "요통" in session.disease:
         sections.append(get_back_pain_symptoms_section(session))
     
-    if "Dyspepsia" in session.disease:
+    if "소화불량" in session.disease:
         sections.append(get_dyspepsia_symptoms_section(session))
     
     return "\n".join(filter(None, sections))

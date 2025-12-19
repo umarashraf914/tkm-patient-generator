@@ -241,7 +241,8 @@ def _apply_cold_specific_correlations(session):
     """
     Apply cold-specific correlation rules (Pages 39-40).
     """
-    if "Cold" not in session.disease:
+    # Use Korean keyword for disease check
+    if "감기" not in session.disease:
         return
     
     _apply_fever_respiratory_correlation(session)

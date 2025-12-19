@@ -1026,18 +1026,20 @@ def randomize_inputs(st):
     # So we only randomize to these two diseases for now
     # ===========================================
     # Only select from supported diseases (Cold and Rhinitis)
+    # Use Korean disease names to match UI dropdown options
     supported_disease_opts = [
-        "Common Cold (감기/급성상기도감염)", 
-        "Allergic Rhinitis (알레르기비염)"
+        "감기/급성상기도감염", 
+        "알레르기비염"
     ]
     session.disease = random.choice(supported_disease_opts)
     
-    if "Cold" in session.disease:
+    # Check for disease type using Korean keywords
+    if "감기" in session.disease:
         num_patterns = len(DISEASE_PATTERNS["감기"]["patterns"])
         session.pattern_idx = random.randint(0, num_patterns - 1)
         # Try to use CSV-based randomization for Cold
         _apply_csv_cold_randomization(st)
-    elif "Rhinitis" in session.disease:
+    elif "비염" in session.disease:
         num_patterns = len(DISEASE_PATTERNS["알레르기비염"]["patterns"])
         session.pattern_idx = random.randint(0, num_patterns - 1)
         # Try to use CSV-based randomization for Rhinitis

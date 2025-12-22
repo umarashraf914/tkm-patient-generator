@@ -321,10 +321,7 @@ def _make_safe_value(value) -> str:
 
 def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict = None) -> bytes:
     """
-    Generate a PDF document with better Korean support using Unicode.
-    
-    This version attempts to use a Unicode font if available.
-    Falls back to ASCII transliteration if Korean fonts aren't available.
+    Generate a PDF document with Korean support using bundled NanumGothic font.
     
     Args:
         summary: Patient summary text  
@@ -334,110 +331,106 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     Returns:
         PDF file as bytes
     """
-    try:
-        # Try to create PDF with Unicode support
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_auto_page_break(auto=True, margin=15)
-        
-        # Try to add Korean font (NanumGothic is commonly available)
-        # If this fails, we'll fall back to the ASCII version
-        try:
-            import os
-            # Common Korean font paths
-            font_paths = [
-                "C:/Windows/Fonts/malgun.ttf",  # Windows Malgun Gothic
-                "C:/Windows/Fonts/NanumGothic.ttf",
-                "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
-                "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS
-            ]
-            
-            font_added = False
-            for font_path in font_paths:
-                if os.path.exists(font_path):
-                    pdf.add_font("Korean", "", font_path, uni=True)
-                    pdf.set_font("Korean", "", 12)
-                    font_added = True
-                    break
-            
-            if not font_added:
-                # No Korean font found, use fallback
-                raise FileNotFoundError("No Korean font found")
-                
-        except Exception:
-            # Fall back to ASCII version
-            return generate_patient_pdf(summary, scenario, patient_info)
-        
-        # Title
-        pdf.set_font('Korean', '', 16)
-        pdf.cell(0, 10, '한의 임상 가상환자 시나리오', align='C', new_x='LMARGIN', new_y='NEXT')
-        pdf.ln(5)
-        
-        # Timestamp
+    import os
+    
+    # Try to create PDF with Unicode support
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    # Korean font paths - check bundled font first, then system fonts
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    font_paths = [
+        os.path.join(script_dir, "fonts", "NanumGothic.ttf"),  # Bundled font (for Streamlit Cloud)
+        "fonts/NanumGothic.ttf",  # Relative path
+        "C:/Windows/Fonts/malgun.ttf",  # Windows Malgun Gothic
+        "C:/Windows/Fonts/NanumGothic.ttf",  # Windows NanumGothic
+        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
+        "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS
+    ]
+    
+    font_added = False
+    for font_path in font_paths:
+        if os.path.exists(font_path):
+            try:
+                pdf.add_font("Korean", "", font_path, uni=True)
+                pdf.set_font("Korean", "", 12)
+                font_added = True
+                print(f"Using Korean font: {font_path}")
+                break
+            except Exception as e:
+                print(f"Failed to load font {font_path}: {e}")
+                continue
+    
+    if not font_added:
+        print("No Korean font found, falling back to ASCII version")
+        return generate_patient_pdf(summary, scenario, patient_info)
+    
+    # Title
+    pdf.set_font('Korean', '', 16)
+    pdf.cell(0, 10, '한의 임상 가상환자 시나리오', align='C', new_x='LMARGIN', new_y='NEXT')
+    pdf.ln(5)
+    
+    # Timestamp
+    pdf.set_font('Korean', '', 10)
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    pdf.cell(0, 8, f'생성일시: {timestamp}', align='R', new_x='LMARGIN', new_y='NEXT')
+    pdf.ln(5)
+    
+    # Line
+    pdf.set_draw_color(100, 100, 100)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(5)
+    
+    # Patient info
+    if patient_info:
+        pdf.set_font('Korean', '', 12)
+        pdf.cell(0, 8, '환자 기본정보', new_x='LMARGIN', new_y='NEXT')
         pdf.set_font('Korean', '', 10)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        pdf.cell(0, 8, f'생성일시: {timestamp}', align='R', new_x='LMARGIN', new_y='NEXT')
-        pdf.ln(5)
         
-        # Line
-        pdf.set_draw_color(100, 100, 100)
+        info_items = [
+            ('질환명', patient_info.get('disease', 'N/A')),
+            ('변증/처방', patient_info.get('pattern', 'N/A')),
+            ('나이/성별', f"{patient_info.get('age', 'N/A')}세 / {patient_info.get('sex', 'N/A')}"),
+            ('신장/체중', f"{patient_info.get('height', 'N/A')}cm / {patient_info.get('weight', 'N/A')}kg"),
+            ('활력징후', f"BP {patient_info.get('sbp', 'N/A')}/{patient_info.get('dbp', 'N/A')} mmHg, "
+                      f"맥박 {patient_info.get('pulse_rate', 'N/A')}/분, "
+                      f"체온 {patient_info.get('temp', 'N/A')}°C"),
+        ]
+        
+        for label, value in info_items:
+            pdf.cell(40, 6, f'{label}:', new_x='RIGHT')
+            pdf.cell(0, 6, str(value), new_x='LMARGIN', new_y='NEXT')
+        
+        pdf.ln(5)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
         pdf.ln(5)
-        
-        # Patient info
-        if patient_info:
-            pdf.set_font('Korean', '', 12)
-            pdf.cell(0, 8, '환자 기본정보', new_x='LMARGIN', new_y='NEXT')
-            pdf.set_font('Korean', '', 10)
-            
-            info_items = [
-                ('질환명', patient_info.get('disease', 'N/A')),
-                ('변증/처방', patient_info.get('pattern', 'N/A')),
-                ('나이/성별', f"{patient_info.get('age', 'N/A')}세 / {patient_info.get('sex', 'N/A')}"),
-                ('신장/체중', f"{patient_info.get('height', 'N/A')}cm / {patient_info.get('weight', 'N/A')}kg"),
-                ('활력징후', f"BP {patient_info.get('sbp', 'N/A')}/{patient_info.get('dbp', 'N/A')} mmHg, "
-                          f"맥박 {patient_info.get('pulse_rate', 'N/A')}/분, "
-                          f"체온 {patient_info.get('temp', 'N/A')}°C"),
-            ]
-            
-            for label, value in info_items:
-                pdf.cell(40, 6, f'{label}:', new_x='RIGHT')
-                pdf.cell(0, 6, str(value), new_x='LMARGIN', new_y='NEXT')
-            
-            pdf.ln(5)
-            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-            pdf.ln(5)
-        
-        # Summary
-        pdf.set_font('Korean', '', 12)
-        pdf.cell(0, 8, '요약', new_x='LMARGIN', new_y='NEXT')
-        pdf.set_font('Korean', '', 10)
-        pdf.multi_cell(0, 6, summary)
-        pdf.ln(5)
-        
-        # Scenario
-        pdf.set_font('Korean', '', 12)
-        pdf.cell(0, 8, '환자 시나리오', new_x='LMARGIN', new_y='NEXT')
-        pdf.set_font('Korean', '', 10)
-        
-        paragraphs = scenario.split('\n')
-        for para in paragraphs:
-            para = para.strip()
-            if para:
-                pdf.multi_cell(0, 6, para)
-                pdf.ln(2)
-        
-        # Convert bytearray to bytes for Streamlit
-        output = pdf.output()
-        if isinstance(output, bytearray):
-            return bytes(output)
-        elif isinstance(output, bytes):
-            return output
-        else:
-            # Handle string output (older fpdf versions)
-            return output.encode('latin-1') if isinstance(output, str) else bytes(output)
-        
-    except Exception as e:
-        # If anything fails, use ASCII fallback
-        print(f"Korean PDF failed, using fallback: {e}")
-        return generate_patient_pdf(summary, scenario, patient_info)
+    
+    # Summary
+    pdf.set_font('Korean', '', 12)
+    pdf.cell(0, 8, '요약', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_font('Korean', '', 10)
+    pdf.multi_cell(0, 6, summary)
+    pdf.ln(5)
+    
+    # Scenario
+    pdf.set_font('Korean', '', 12)
+    pdf.cell(0, 8, '환자 시나리오', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_font('Korean', '', 10)
+    
+    paragraphs = scenario.split('\n')
+    for para in paragraphs:
+        para = para.strip()
+        if para:
+            pdf.multi_cell(0, 6, para)
+            pdf.ln(2)
+    
+    # Convert bytearray to bytes for Streamlit
+    output = pdf.output()
+    if isinstance(output, bytearray):
+        return bytes(output)
+    elif isinstance(output, bytes):
+        return output
+    else:
+        return output.encode('latin-1') if isinstance(output, str) else bytes(output)
+

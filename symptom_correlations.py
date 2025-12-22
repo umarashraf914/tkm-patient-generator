@@ -210,21 +210,21 @@ def apply_appetite_digestion_correlations(session_state):
     is_obese = bmi >= 25
     
     # RULE 1: 식욕좋음 → 비만 경향 (r=0.687)
-    if session_state.appetite in ["High (항진)", "Normal (보통)"]:
+    if session_state.appetite in ["항진", "보통"]:
         if should_apply_correlation(0.687):
             # Good appetite correlates with better digestion
-            if session_state.digestion in ["Bad (나쁨)", "Very Bad (매우 나쁨)"]:
-                session_state.digestion = random.choice(["Normal (보통)", "Good (좋음)"])
+            if session_state.digestion in ["나쁨", "매우 나쁨"]:
+                session_state.digestion = random.choice(["보통", "좋음"])
             
             # Correlates with higher food/water intake
             if should_apply_correlation(0.349):  # food_amount
-                session_state.diet_amt = random.choice(["Normal (보통)", "Much (많음)"])
+                session_state.diet_amt = random.choice(["보통", "많음"])
             
             if should_apply_correlation(0.311):  # water_intake
-                session_state.water_intake = random.choice(["1-2L", ">2L (2L 이상)"])
+                session_state.water_intake = random.choice(["1-2L", "2L 이상"])
     
     # RULE 2: 소화불량 → GI 증상들 (r=0.329-0.372)
-    if session_state.digestion in ["Bad (나쁨)", "Very Bad (매우 나쁨)"]:
+    if session_state.digestion in ["나쁨", "매우 나쁨"]:
         # Upper abdominal pain (r=0.372)
         if should_apply_correlation(0.372):
             if hasattr(session_state, 'abd_pain_sev') and session_state.abd_pain_sev < 2:
@@ -250,7 +250,7 @@ def apply_appetite_digestion_correlations(session_state):
         if should_apply_correlation(0.325):
             if session_state.bloating < 2:
                 session_state.bloating = random.randint(2, 4)
-            session_state.flatulence = random.choice(["Normal (보통)", "Frequent (잦음)"])
+            session_state.flatulence = random.choice(["보통", "잦음"])
     
     return session_state
 
@@ -264,12 +264,12 @@ def apply_ocd_appetite_negative_correlation(session_state):
     if session_state.emot_anxiety >= 4 or session_state.emot_thought >= 4:
         if should_apply_correlation(0.404):  # Use absolute value
             # Reduce appetite
-            if session_state.appetite in ["High (항진)"]:
-                session_state.appetite = random.choice(["Normal (보통)", "Low (저하)"])
+            if session_state.appetite in ["항진"]:
+                session_state.appetite = random.choice(["보통", "저하"])
             
             # Reduce digestion quality
-            if session_state.digestion in ["Good (좋음)"]:
-                session_state.digestion = random.choice(["Normal (보통)", "Bad (나쁨)"])
+            if session_state.digestion in ["좋음"]:
+                session_state.digestion = random.choice(["보통", "나쁨"])
     
     return session_state
 
@@ -359,12 +359,12 @@ def apply_stress_sleep_cluster(session_state):
     - 다몽 ↔ 우울: r=0.358
     """
     # RULE 1: High stress → Poor sleep quality (r=0.430)
-    if session_state.emot_anxiety >= 3 or (hasattr(session_state, 'stress_coping') and session_state.stress_coping == "Poor (나쁨)"):
+    if session_state.emot_anxiety >= 3 or (hasattr(session_state, 'stress_coping') and session_state.stress_coping == "나쁨"):
         if should_apply_correlation(0.430):
-            if session_state.sleep_waking_state == "Refreshed (개운함)":
-                session_state.sleep_waking_state = random.choice(["Tired (피곤함)", "Heavy (무거움)"])
-            if session_state.sleep_depth == "Deep (깊음)":
-                session_state.sleep_depth = "Shallow/Light (얕음)"
+            if session_state.sleep_waking_state == "개운함":
+                session_state.sleep_waking_state = random.choice(["피곤함", "무거움"])
+            if session_state.sleep_depth == "깊음":
+                session_state.sleep_depth = "얕음"
         
         # 스트레스 → 트림 (r=0.323)
         if should_apply_correlation(0.323):
@@ -372,7 +372,7 @@ def apply_stress_sleep_cluster(session_state):
                 session_state.belching = random.randint(2, 3)
     
     # RULE 2: Poor sleep quality → Sleep disorder (r=0.695)
-    if session_state.sleep_depth == "Shallow/Light (얕음)" or session_state.sleep_waking_state in ["Tired (피곤함)", "Heavy (무거움)"]:
+    if session_state.sleep_depth == "얕음" or session_state.sleep_waking_state in ["피곤함", "무거움"]:
         if should_apply_correlation(0.695):
             # High correlation - likely to have insomnia
             if not session_state.insomnia_onset and random.random() < 0.5:
@@ -381,10 +381,10 @@ def apply_stress_sleep_cluster(session_state):
                 session_state.insomnia_maintain = True
     
     # RULE 3: 다몽/Frequent dreams correlations
-    if session_state.dreams in ["Frequent (자주)", "Nightmares (악몽)"]:
+    if session_state.dreams in ["자주", "악몽"]:
         # 다몽 → 수면장애 (r=0.327)
         if should_apply_correlation(0.327):
-            session_state.sleep_depth = "Shallow/Light (얕음)"
+            session_state.sleep_depth = "얕음"
             session_state.insomnia_maintain = True
         
         # 다몽 → 경계긴장/불안 (r=0.481)
@@ -415,7 +415,7 @@ def apply_fatigue_pain_cluster(session_state):
     - 피로 ↔ 허약: r=0.320
     """
     # RULE 1: 피로 → 통증 (r=0.435)
-    if session_state.fatigue_level in ["Severe (심함)", "Moderate (중등도)"]:
+    if session_state.fatigue_level in ["심함", "중등도"]:
         if should_apply_correlation(0.435):
             # General pain increases with fatigue
             if session_state.pain_sev < 2:
@@ -427,15 +427,15 @@ def apply_fatigue_pain_cluster(session_state):
         
         # 피로 → 허약 (r=0.320)
         if should_apply_correlation(0.320):
-            if session_state.physical_strength == "Strong (강건)":
-                session_state.physical_strength = random.choice(["Normal (보통)", "Weak (허약)"])
+            if session_state.physical_strength == "강건":
+                session_state.physical_strength = random.choice(["보통", "허약"])
             session_state.limb_weakness = True
     
     # Reverse: Pain → Fatigue
     if session_state.pain_sev >= 4:
         if should_apply_correlation(0.435):
-            if session_state.fatigue_level in ["None (없음)", "Low (약함)"]:
-                session_state.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+            if session_state.fatigue_level in ["없음", "약함"]:
+                session_state.fatigue_level = random.choice(["중등도", "심함"])
     
     return session_state
 
@@ -468,20 +468,20 @@ def apply_sweat_heat_negative_correlation(session_state):
     - 땀 양이 많아지면 체온이 높아지는 것 배제 (땀이 체온을 낮춤)
     """
     # RULE: High sweat → body should NOT feel excessively hot
-    if session_state.sweat_amt in ["Excessive (다한 多汗)", "Much (많음)"]:
+    if session_state.sweat_amt in ["다한", "많음"]:
         if should_apply_correlation(0.372):  # Use absolute value
             # Body heat feeling should decrease (sweating cools the body)
-            if session_state.cold_heat_body in ["Hot (열)", "Hot (열 熱)"]:
-                session_state.cold_heat_body = random.choice(["Balanced (보통)", "Cold (한 寒)"])
+            if session_state.cold_heat_body in ["열"]:
+                session_state.cold_heat_body = random.choice(["보통", "한"])
             
             # Heat sensitivity should decrease
             if session_state.heat_sensitivity >= 4:
                 session_state.heat_sensitivity = random.randint(2, 3)
     
     # Reverse: If body feels hot, sweating should not be excessive (exclusion rule)
-    if session_state.cold_heat_body in ["Hot (열)", "Hot (열 熱)"] and session_state.heat_sensitivity >= 4:
-        if session_state.sweat_amt in ["Excessive (다한 多汗)"]:
-            session_state.sweat_amt = random.choice(["Normal (보통)", "None (무한 無汗)"])
+    if session_state.cold_heat_body in ["열"] and session_state.heat_sensitivity >= 4:
+        if session_state.sweat_amt in ["다한"]:
+            session_state.sweat_amt = random.choice(["보통", "무한"])
     
     return session_state
 
@@ -573,15 +573,15 @@ def validate_correlation_consistency(session_state):
     issues = []
     
     # Check 1: Good appetite should not have severe digestion issues
-    if session_state.appetite in ["High (항진)"] and session_state.digestion in ["Bad (나쁨)", "Very Bad (매우 나쁨)"]:
+    if session_state.appetite in ["항진"] and session_state.digestion in ["나쁨", "매우 나쁨"]:
         issues.append("Inconsistent: High appetite with poor digestion (강박 패턴 아니면 부적절)")
     
     # Check 2: High sweat with high heat feeling
-    if session_state.sweat_amt in ["Excessive (다한 多汗)"] and session_state.cold_heat_body in ["Hot (열 熱)"]:
+    if session_state.sweat_amt in ["다한"] and session_state.cold_heat_body in ["열"]:
         issues.append("Warning: Excessive sweat with hot feeling (땀양-열 음의 상관 위반)")
     
     # Check 3: Severe fatigue without weakness
-    if session_state.fatigue_level == "Severe (심함)" and session_state.physical_strength == "Strong (강건)":
+    if session_state.fatigue_level == "심함" and session_state.physical_strength == "강건":
         issues.append("Inconsistent: Severe fatigue with strong physical strength")
     
     # Check 4: Hearing loss without tinnitus correlation

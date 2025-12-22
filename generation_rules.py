@@ -33,6 +33,8 @@ from typing import Dict, List, Optional, Tuple, Any
 CSV_PATHS = {
     "감기": os.path.join(os.path.dirname(__file__), "data", "gamgi_rules.csv"),
     "알레르기비염": os.path.join(os.path.dirname(__file__), "data", "allergic_rhinitis_rules.csv"),
+    "기능성소화불량": os.path.join(os.path.dirname(__file__), "data", "dyspepsia_rules.csv"),
+    "요통": os.path.join(os.path.dirname(__file__), "data", "backpain_rules.csv"),
 }
 
 # Pattern column indices in each CSV (0-indexed, after the base columns)
@@ -54,6 +56,36 @@ PATTERN_COLUMNS = {
             "소청룡탕": 12,
             "영강감미신하인탕": 13,
             "마황부자세신탕": 14,
+        }
+    },
+    # For 기능성소화불량 (3.csv): 한증, 열증, 기허, 양허, 음허, 담음(습), 식적, 어혈, 기체
+    "기능성소화불량": {
+        "base_prob_col": 9,  # "일반 생성 규칙 및 비율"
+        "patterns": {
+            "한증형": 10,
+            "열증형": 11,
+            "기허형": 12,
+            "양허형": 13,
+            "음허형": 14,
+            "담음형": 15,
+            "식적형": 16,
+            "어혈형": 17,
+            "기체형": 18,
+        }
+    },
+    # For 요통 (4.csv): 한증, 열증, 기허, 양허, 음허, 담음(습), 식적, 어혈, 기체
+    "요통": {
+        "base_prob_col": 9,  # "일반요통환자 생성 규칙 및 비율"
+        "patterns": {
+            "한증형": 10,
+            "열증형": 11,
+            "기허형": 12,
+            "양허형": 13,
+            "음허형": 14,
+            "담음형": 15,
+            "식적형": 16,
+            "어혈형": 17,
+            "기체형": 18,
         }
     }
 }

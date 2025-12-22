@@ -123,21 +123,21 @@ def _apply_appetite_motivation_rules(session):
       (No appetite + Very high motivation/active tendency = EXCLUDE)
     """
     # Check for no appetite conditions
-    no_appetite = session.appetite in ["None (없음)", "Low (저하)"]
+    no_appetite = session.appetite in ["없음", "저하"]
     
     # Check for high motivation conditions
-    high_motivation = session.motivation in ["High (높음)"]
+    high_motivation = session.motivation in ["높음"]
     
     if no_appetite and high_motivation:
         # Rule: No appetite cannot coexist with high motivation
         # Resolution: Lower motivation to match poor appetite
-        session.motivation = random.choice(["Normal (보통)", "Low (낮음)", "Apathetic (무기력)"])
+        session.motivation = random.choice(["보통", "낮음", "무기력"])
     
     # Additional check: Very low appetite (None) should not have normal+ motivation
-    if session.appetite == "None (없음)" and session.motivation == "Normal (보통)":
+    if session.appetite == "없음" and session.motivation == "보통":
         # Severe appetite loss usually accompanies motivation loss
         if random.random() < 0.7:  # 70% probability to enforce
-            session.motivation = random.choice(["Low (낮음)", "Apathetic (무기력)"])
+            session.motivation = random.choice(["낮음", "무기력"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -211,8 +211,9 @@ def _apply_social_history_rules(session):
       (Exercise frequency > 0 → exercise time must be > 0)
     """
     # Rule 1: No alcohol → no drink amount
-    if session.social_alcohol_freq == "None (비음주)":
+    if session.social_alcohol_freq in ["비음주", "None (비음주)"]:
         session.social_alcohol_amt = 0.0
+        session.social_alcohol_freq = "비음주"  # Normalize to Korean only
         # Also reset any alcohol-related variables
         if hasattr(session, 'social_alcohol_glasses'):
             session.social_alcohol_glasses = 0
@@ -241,7 +242,7 @@ def _apply_social_history_rules(session):
     if hasattr(session, 'social_exercise_freq') and session.social_exercise_freq > 0:
         has_exercise_activity = True
     
-    if session.social_exercise_int in ["Medium (중)", "High (고)"]:
+    if session.social_exercise_int in ["중", "고"]:
         has_exercise_activity = True
     
     if has_exercise_activity and session.social_exercise_time <= 0:
@@ -277,16 +278,16 @@ def _apply_pain_related_rules(session):
     no_abd_pain = session.abd_pain_sev <= 1
     
     if no_abd_pain:
-        session.abd_pain_type = "None (없음)"
+        session.abd_pain_type = "없음"
         # Also reset related abdominal symptoms
         session.abd_tenderness = False
     else:
         # If there IS abdominal pain, must have a pain type
-        if session.abd_pain_type == "None (없음)":
+        if session.abd_pain_type in ["없음", "None (없음)"]:
             session.abd_pain_type = random.choice([
-                "Dull (둔통)", 
-                "Sharp (예리통)", 
-                "Cramping (산통/경련통)"
+                "둔통", 
+                "예리통", 
+                "산통/경련통"
             ])
     
     # Rule 2: Check all pain grid items - no frequency → no intensity
@@ -384,14 +385,14 @@ def _apply_excretion_rules(session):
         # Normal stream and no residual = comfortable urination
         # Consistent state - no changes needed
         pass
-    elif session.urine_stream == "Normal (정상)" and session.urine_residual:
+    elif session.urine_stream == "정상" and session.urine_residual:
         # Normal stream but residual feeling - somewhat inconsistent
         # Allow with low probability
         if random.random() < 0.3:
             session.urine_residual = False
     
     # If weak stream, should have residual feeling
-    if session.urine_stream in ["Weak (약함)", "Intermittent (끊김)"]:
+    if session.urine_stream in ["약함", "끊김"]:
         if not session.urine_residual:
             if random.random() < 0.6:  # 60% should have residual
                 session.urine_residual = True
@@ -414,29 +415,29 @@ def _apply_physical_mental_rules(session):
       (Clear mind + Very bad memory = EXCLUDE)
     """
     # Rule 1: Very weak → must have fatigue
-    if session.physical_strength == "Weak (허약)":
-        if session.fatigue_level in ["None (없음)", "Low (약함)"]:
+    if session.physical_strength == "허약":
+        if session.fatigue_level in ["없음", "약함"]:
             # Weak strength but no/low fatigue is illogical
-            session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+            session.fatigue_level = random.choice(["중등도", "심함"])
     
     # Inverse: Strong strength should not have severe fatigue typically
-    if session.physical_strength == "Strong (강건)":
-        if session.fatigue_level == "Severe (심함)":
+    if session.physical_strength == "강건":
+        if session.fatigue_level == "심함":
             # Strong but severely fatigued - possible but reduce probability
             if random.random() < 0.5:
-                session.fatigue_level = random.choice(["None (없음)", "Low (약함)", "Moderate (중등도)"])
+                session.fatigue_level = random.choice(["없음", "약함", "중등도"])
     
     # Rule 2: Clear mind → cannot have very bad memory
-    if session.mental_clarity == "Clear (맑음/청명)":
-        if session.memory == "Bad (나쁨)":
+    if session.mental_clarity == "맑음":
+        if session.memory == "나쁨":
             # Clear mind but bad memory is illogical
-            session.memory = random.choice(["Good (좋음)", "Forgetful (건망)"])
+            session.memory = random.choice(["좋음", "건망"])
     
     # Inverse: Confused/Foggy mind should not have good memory
-    if session.mental_clarity in ["Foggy (흐릿/혼미)", "Confused (혼란)"]:
-        if session.memory == "Good (좋음)":
+    if session.mental_clarity in ["흐릿", "혼란"]:
+        if session.memory == "좋음":
             if random.random() < 0.7:  # 70% enforce
-                session.memory = random.choice(["Forgetful (건망)", "Bad (나쁨)"])
+                session.memory = random.choice(["건망", "나쁨"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -535,15 +536,16 @@ def _apply_cold_heat_consistency_rules(session):
     
     # Rule 5: Drink temperature preference consistency
     # Cold body → should prefer warm/hot drinks
+    # Use Korean values to match UI options
     if session.cold_heat_body == "Cold (한 寒)":
-        if session.drink_temp == "Icy (냉수)":
-            session.drink_temp = random.choice(["Warm (온수)", "Hot (열수)"])
+        if session.drink_temp == "냉수":
+            session.drink_temp = random.choice(["온수", "열수"])
     
     # Hot body → may prefer cold drinks
     if session.cold_heat_body == "Hot (열 熱)":
-        if session.drink_temp == "Hot (열수)":
+        if session.drink_temp == "열수":
             if random.random() < 0.6:
-                session.drink_temp = random.choice(["Icy (냉수)", "Warm (온수)"])
+                session.drink_temp = random.choice(["냉수", "온수"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -609,18 +611,16 @@ def _apply_menstrual_consistency_rules(session):
     # Check if menstrual cycle is specified
     has_cycle = hasattr(session, 'mens_cycle') and session.mens_cycle > 0
     
-    if has_cycle and session.mens_cycle > 0:
-        # Cycle is specified → cannot be "3+ months without period"
-        if session.mens_regular == "폐경":
-            # If menopause but cycle is given, this is inconsistent
-            # Either clear cycle or keep menopause
-            if session.age < 45:
-                # Young age, keep cycle
-                session.mens_regular = random.choice(["규칙", "불규칙"])
-            else:
-                # Older age, may be perimenopausal
-                session.mens_cycle = 0
-                session.mens_duration = 0
+    # 폐경인 경우 생리 관련 정보 모두 초기화
+    if session.mens_regular == "폐경":
+        session.mens_cycle = 0
+        session.mens_duration = 0
+        session.mens_pain_score = 0
+        session.mens_color = "N/A"
+    elif has_cycle and session.mens_cycle > 0:
+        # Cycle is specified and not menopause
+        # Keep the existing cycle data
+        pass
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -641,12 +641,12 @@ def _apply_meal_consistency_rules(session):
     
     if session.diet_freq <= 1:
         # 1 or fewer meals per day
-        if session.diet_regular == "Regular (규칙적)":
+        if session.diet_regular in ["Regular (규칙적)", "규칙적"]:
             # Cannot be regular with such low meal frequency
-            session.diet_regular = "Irregular (불규칙)"
+            session.diet_regular = "불규칙"
     
     # Also check appetite correlation
-    if session.diet_freq <= 1 and session.appetite in ["High (항진)", "Normal (보통)"]:
+    if session.diet_freq <= 1 and session.appetite in ["항진", "보통", "High (항진)", "Normal (보통)"]:
         # Low meal frequency should correlate with low appetite
         if random.random() < 0.6:
-            session.appetite = random.choice(["None (없음)", "Low (저하)"])
+            session.appetite = random.choice(["없음", "저하"])

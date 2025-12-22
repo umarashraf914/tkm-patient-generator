@@ -79,7 +79,7 @@ def build_system_prompt(session, symptom_descriptions, selected_pattern=None):
     
     ### 4. 수면, 땀, 한열
     - 수면: {session.sleep_hours}시간, {session.sleep_depth}, 기상시 {session.sleep_waking_state}
-    - 입면장애: {session.insomnia_onset}, 중도각성: {session.insomnia_maintain}
+    - 입면장애: {session.insomnia_onset}/5, 중도각성: {session.insomnia_maintain}/5
     - 땀: {session.sweat_amt}, {session.sweat_area}
     - 한열경향: {session.cold_heat_pref}
     - 음료온도선호: {session.drink_temp}
@@ -207,7 +207,7 @@ def get_output_format_instructions():
         【신체검진 소견】
         - 활력징후: BP, 맥박, 체온, 호흡
         - 전신 상태: [피로감, 체력, 부종, 피부 상태]
-        - 면색: [창백/홍조/황달/정상]
+        - 면색: [창백/홍조/황색/정상]
         
         【설진 소견】
         - 설질: [색깔, 크기, 형태]

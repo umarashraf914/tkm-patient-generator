@@ -90,12 +90,12 @@ def _apply_wind_cold_pattern(session):
         session.chills_sev, session.fever_sev = session.fever_sev, session.chills_sev
     
     # Tongue and phlegm characteristics
-    session.tongue_coat_color = "White"
-    session.phlegm_color = "White/Clear (희박/맑음)"
+    session.tongue_coat_color = "백태"
+    session.phlegm_color = "희박/맑음"
     
     # No sweating (無汗)
     session.sweating = False
-    session.sweat_amt = "None (무한)"
+    session.sweat_amt = "무한"
     
     # Joint pain correlation (骨節疼痛)
     if random.random() < 0.6:
@@ -103,8 +103,9 @@ def _apply_wind_cold_pattern(session):
             session.cold_symptoms_spec.append("골절동통 (骨節疼痛) - 풍한")
     
     # Prefers warm/hot drinks (avoids cold)
-    if session.drink_temp == "Icy":
-        session.drink_temp = random.choice(["Warm", "Hot"])
+    # Use Korean values to match UI options
+    if session.drink_temp == "냉수":
+        session.drink_temp = random.choice(["온수", "열수"])
 
 
 def _apply_wind_heat_pattern(session):
@@ -122,17 +123,18 @@ def _apply_wind_heat_pattern(session):
         session.chills_sev, session.fever_sev = session.fever_sev, session.chills_sev
     
     # Tongue and phlegm characteristics
-    session.tongue_coat_color = random.choice(["White", "Yellow"])
-    session.phlegm_color = "Yellow/Sticky (황담/끈적)"
+    session.tongue_coat_color = random.choice(["백태", "황태"])
+    session.phlegm_color = "황담/끈적"
     
     # Sweating present (有汗)
     session.sweating = True
-    if session.sweat_amt == "None (무한)":
-        session.sweat_amt = "Normal (보통)"
+    if session.sweat_amt == "무한":
+        session.sweat_amt = "보통"
     
     # May prefer cool drinks
-    if session.drink_temp == "Hot":
-        session.drink_temp = random.choice(["Warm", "Icy"])
+    # Use Korean values to match UI options
+    if session.drink_temp == "열수":
+        session.drink_temp = random.choice(["온수", "냉수"])
 
 
 def _apply_wind_dryness_pattern(session):
@@ -228,13 +230,13 @@ def _apply_yuebi_pattern(session):
     """
     # 월비가반하탕은 열증이므로 누런 콧물 가능
     session.snot_type = "백점액 (白粘) - 희고 끈적"  # 황농성보다는 백점액 권장
-    if session.tongue_coat_color == "White":
-        session.tongue_coat_color = "Yellow"
+    if session.tongue_coat_color == "백태":
+        session.tongue_coat_color = "황태"
 
 
 def _apply_shegan_pattern(session):
     """Shegan (사간마황탕) - Cold/asthma pattern."""
-    session.snot_type = random.choice(["Clear/Watery (맑음/물)", "White/Sticky (희고 끈적)"])
+    session.snot_type = random.choice(["청수양 (清水樣) - 맑고 물같음", "백점액 (白粘) - 희고 끈적"])
 
 
 def _apply_minor_blue_dragon_pattern(session):
@@ -242,17 +244,17 @@ def _apply_minor_blue_dragon_pattern(session):
     Minor Blue Dragon (소청룡탕) - Cold/watery pattern.
     Key sign: 맑은 콧물이 줄줄 (profuse clear discharge)
     """
-    session.snot_type = "Clear/Watery (맑음/물)"
-    session.tongue_coat_color = "White"
-    if session.cold_heat_pref == "Heat Sens":
-        session.cold_heat_pref = random.choice(["Cold Sens", "Balanced"])
+    session.snot_type = "청수양 (清水樣) - 맑고 물같음"
+    session.tongue_coat_color = "백태"
+    if session.cold_heat_pref == "열감/더위탐":
+        session.cold_heat_pref = random.choice(["오한/추위탐", "보통"])
 
 
 def _apply_linggan_pattern(session):
     """Ling-Gan (영감강미신하인탕) - Cold/deficiency pattern."""
-    session.snot_type = "Clear/Watery (맑음/물)"
-    session.cold_heat_pref = "Cold Sens"
-    session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+    session.snot_type = "청수양 (清水樣) - 맑고 물같음"
+    session.cold_heat_pref = "오한/추위탐"
+    session.fatigue_level = random.choice(["중등도", "심함"])
 
 
 def _apply_mahuang_fuzi_pattern(session):
@@ -261,8 +263,8 @@ def _apply_mahuang_fuzi_pattern(session):
     신양허: 수족냉, 피로
     """
     session.cold_hands_feet = True
-    session.cold_heat_pref = "Cold Sens"
-    session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+    session.cold_heat_pref = "오한/추위탐"
+    session.fatigue_level = random.choice(["중등도", "심함"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -347,10 +349,10 @@ def _apply_kidney_deficiency_pattern(session, pain_nature_list):
     Page 15: Continuous ache, hard to move, sexual overexertion cause
     舌大 (large tongue), 맥세 (thin pulse)
     """
-    session.back_pain_cause = "Kidney Deficiency (신허)"
-    session.tongue_size = "Enlarged (대)"
-    session.pulse_width = "Thin"
-    session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+    session.back_pain_cause = "신허 (Kidney Deficiency)"
+    session.tongue_size = "대 (Enlarged)"
+    session.pulse_width = "세맥"
+    session.fatigue_level = random.choice(["중등도", "심함"])
 
 
 def _apply_phlegm_pattern(session, pain_nature_list):
@@ -359,10 +361,10 @@ def _apply_phlegm_pattern(session, pain_nature_list):
     Page 15: Pain radiates up/down along meridians
     맥滑 또는 伏 (slippery or hidden pulse)
     """
-    session.back_pain_cause = "No Specific Cause (발병 요인 없음)"
-    if "Moving (유주통) - Phlegm" not in pain_nature_list:
-        session.pain_nature.append("Moving (유주통) - Phlegm")
-    session.pulse_smooth = "Smooth (활)"
+    session.back_pain_cause = "발병 요인 없음"
+    if "유주통 (Moving) - 담음" not in pain_nature_list:
+        session.pain_nature.append("유주통 (Moving) - 담음")
+    session.pulse_smooth = "활맥"
 
 
 def _apply_food_stagnation_pattern(session, pain_nature_list):
@@ -382,8 +384,8 @@ def _apply_food_stagnation_pattern(session, pain_nature_list):
         "기름진 음식 (Greasy Food)"
     ]
     session.back_pain_cause = random.choice(non_overeating_causes)
-    session.pulse_smooth = "Smooth (활)"
-    session.appetite = random.choice(["None", "Low"])
+    session.pulse_smooth = "활맥"
+    session.appetite = random.choice(["없음", "적음"])
     session.bloating = random.randint(2, 4)
 
 
@@ -393,11 +395,11 @@ def _apply_qi_pattern(session, pain_nature_list):
     Page 15: Frustration cause, worse with standing/walking
     맥沈伏 또는 弦 (sinking-hidden or wiry pulse)
     """
-    session.back_pain_cause = "Frustration/Stress (울체)"
-    if "Worse Standing (오래 서있으면 악화) - Qi" not in pain_nature_list:
-        session.pain_nature.append("Worse Standing (오래 서있으면 악화) - Qi")
-    session.pulse_depth = "Sinking"
-    session.pulse_tension = random.choice(["Tense (긴)", "Normal"])
+    session.back_pain_cause = "울체/스트레스 (Frustration)"
+    if "오래 서있으면 악화 - 기" not in pain_nature_list:
+        session.pain_nature.append("오래 서있으면 악화 - 기")
+    session.pulse_depth = "침맥"
+    session.pulse_tension = random.choice(["긴맥", "보통"])
 
 
 def _apply_sprain_pattern(session, pain_nature_list):
@@ -406,10 +408,10 @@ def _apply_sprain_pattern(session, pain_nature_list):
     Page 15: Lifting heavy things, injury - sudden onset
     맥沈伏 實 (sinking-hidden, replete pulse)
     """
-    session.back_pain_cause = "Injury/Sprain (좌섬/외상)"
-    session.onset = random.choice(["1 day ago", "2-3 days ago"])
-    session.pulse_depth = "Sinking"
-    session.pulse_strength = "Strong"
+    session.back_pain_cause = "좌섬/외상 (Sprain/Injury)"
+    session.onset = random.choice(["1일 전", "2-3일 전"])
+    session.pulse_depth = "침맥"
+    session.pulse_strength = "강력"
 
 
 def _apply_blood_stasis_pattern(session, pain_nature_list):
@@ -435,15 +437,15 @@ def _apply_blood_stasis_pattern(session, pain_nature_list):
     session.trauma_history = True
     session.trauma_detail = session.back_pain_cause
     
-    session.back_pain_timing = "Worse at Night (야간 악화)"
+    session.back_pain_timing = "야간 악화 (Worse at Night)"
     
-    if "Stabbing (자통) - Blood Stasis" not in pain_nature_list:
-        session.pain_nature.append("Stabbing (자통) - Blood Stasis")
-    if "Worse at Night (야간통) - Blood Stasis" not in pain_nature_list:
-        session.pain_nature.append("Worse at Night (야간통) - Blood Stasis")
+    if "자통 (Stabbing) - 어혈" not in pain_nature_list:
+        session.pain_nature.append("자통 (Stabbing) - 어혈")
+    if "야간통 (Worse at Night) - 어혈" not in pain_nature_list:
+        session.pain_nature.append("야간통 (Worse at Night) - 어혈")
     
-    session.pulse_smooth = "Rough (삽)"
-    session.tongue_color = random.choice(["Dark Red", "Pale Red"])
+    session.pulse_smooth = "삽맥"
+    session.tongue_color = random.choice(["강홍/자설", "담홍"])
 
 
 def _apply_wind_pattern(session, pain_nature_list):
@@ -452,11 +454,11 @@ def _apply_wind_pattern(session, pain_nature_list):
     Page 16: Pain moves around, may radiate to legs
     맥浮 (floating pulse)
     """
-    session.back_pain_cause = "No Specific Cause (발병 요인 없음)"
-    if "Moving (유주통) - Phlegm" not in pain_nature_list:
-        session.pain_nature.append("Moving (유주통) - Phlegm")
+    session.back_pain_cause = "발병 요인 없음"
+    if "유주통 (Moving) - 담음" not in pain_nature_list:
+        session.pain_nature.append("유주통 (Moving) - 담음")
     session.back_radiation = True
-    session.pulse_depth = "Floating"
+    session.pulse_depth = "부맥"
 
 
 def _apply_cold_pattern(session, pain_nature_list):
@@ -465,16 +467,16 @@ def _apply_cold_pattern(session, pain_nature_list):
     Page 16: Hard to turn body, warmth helps
     맥沈緊 (sinking-tight pulse)
     """
-    session.back_pain_cause = "No Specific Cause (발병 요인 없음)"
+    session.back_pain_cause = "발병 요인 없음"
     
-    if "Fixed/Cold (한통) - Cold" not in pain_nature_list:
-        session.pain_nature.append("Fixed/Cold (한통) - Cold")
-    if "Better w/ Warmth (득온즉감) - Cold" not in pain_nature_list:
-        session.pain_nature.append("Better w/ Warmth (득온즉감) - Cold")
+    if "한통 (Cold Pain) - 한" not in pain_nature_list:
+        session.pain_nature.append("한통 (Cold Pain) - 한")
+    if "득온즉감 (Better w/ Warmth) - 한" not in pain_nature_list:
+        session.pain_nature.append("득온즉감 (Better w/ Warmth) - 한")
     
-    session.pulse_depth = "Sinking"
-    session.pulse_tension = "Tense (긴)"
-    session.cold_heat_pref = "Cold Sens"
+    session.pulse_depth = "침맥"
+    session.pulse_tension = "긴맥"
+    session.cold_heat_pref = "오한/추위탐"
     session.cold_hands_feet = True
 
 
@@ -484,14 +486,14 @@ def _apply_dampness_pattern(session, pain_nature_list):
     Page 16: Damp environment, heavy like a stone, cold feeling
     맥緩 (slow pulse)
     """
-    session.back_pain_cause = "Damp Environment (습한 환경)"
+    session.back_pain_cause = "습한 환경 (Damp Environment)"
     
-    if "Heavy/Stone-like (중통) - Dampness" not in pain_nature_list:
-        session.pain_nature.append("Heavy/Stone-like (중통) - Dampness")
+    if "중통 (Heavy) - 습" not in pain_nature_list:
+        session.pain_nature.append("중통 (Heavy) - 습")
     
-    session.cold_heat_pref = "Cold Sens"
-    session.pulse_tension = "Soft (유)"
-    session.tongue_coat_thick = random.choice(["Thick", "Greasy"])
+    session.cold_heat_pref = "오한/추위탐"
+    session.pulse_tension = "유맥"
+    session.tongue_coat_thick = random.choice(["후태", "니태"])
 
 
 def _apply_damp_heat_pattern(session, pain_nature_list):
@@ -500,11 +502,11 @@ def _apply_damp_heat_pattern(session, pain_nature_list):
     Page 16: Greasy food, sitting long worsens it
     맥緩 또는 沈 (slow or sinking pulse)
     """
-    session.back_pain_cause = "Greasy Food/Sedentary (기름진 음식/오래 앉음)"
-    session.pulse_depth = random.choice(["Middle", "Sinking"])
-    session.pulse_tension = "Soft (유)"
-    session.tongue_coat_color = "Yellow"
-    session.tongue_coat_thick = "Greasy"
+    session.back_pain_cause = "기름진 음식/오래 앉음"
+    session.pulse_depth = random.choice(["중맥", "침맥"])
+    session.pulse_tension = "유맥"
+    session.tongue_coat_color = "황태"
+    session.tongue_coat_thick = "니태"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -553,20 +555,20 @@ def _apply_spleen_stomach_weakness_pattern(session, dyspepsia_specs):
     Page 16: No appetite, eats little, bloating after eating
     舌苔淡白 薄潤, 脈細弱
     """
-    session.appetite = random.choice(["None", "Low"])
-    session.diet_amt = "Little (적음)"
+    session.appetite = random.choice(["없음", "적음"])
+    session.diet_amt = "적음"
     session.bloating = random.randint(2, 4)
-    session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
+    session.fatigue_level = random.choice(["중등도", "심함"])
     session.limb_weakness = True
     
     # Tongue: Pale with thin white coat
-    session.tongue_color = "Pale"
-    session.tongue_coat_color = "White"
-    session.tongue_coat_thick = "Thin"
+    session.tongue_color = "담백"
+    session.tongue_coat_color = "백태"
+    session.tongue_coat_thick = "박태"
     
     # Pulse: Thin-weak
-    session.pulse_width = "Thin"
-    session.pulse_strength = "Weak"
+    session.pulse_width = "세맥"
+    session.pulse_strength = "무력"
 
 
 def _apply_spleen_stomach_qi_def_pattern(session, dyspepsia_specs):
@@ -577,17 +579,17 @@ def _apply_spleen_stomach_qi_def_pattern(session, dyspepsia_specs):
     """
     session.epigastric_pain = random.randint(2, 4)
     session.sighing_freq = random.randint(2, 4)
-    session.fatigue_level = random.choice(["Moderate (중등도)", "Severe (심함)"])
-    session.mental_clarity = "Foggy (흐릿)"
+    session.fatigue_level = random.choice(["중등도", "심함"])
+    session.mental_clarity = "흐릿"
     session.emot_anger = random.randint(3, 5)
     
     # Tongue: Pale white
-    session.tongue_color = "Pale"
-    session.tongue_coat_color = "White"
+    session.tongue_color = "담백"
+    session.tongue_coat_color = "백태"
     
     # Pulse: Thin-weak
-    session.pulse_width = "Thin"
-    session.pulse_strength = "Weak"
+    session.pulse_width = "세맥"
+    session.pulse_strength = "무력"
 
 
 def _apply_liver_stomach_disharmony_pattern(session, dyspepsia_specs):
@@ -599,23 +601,23 @@ def _apply_liver_stomach_disharmony_pattern(session, dyspepsia_specs):
     session.acid_reflux = True
     session.belching = random.randint(3, 5)
     
-    if "Acid Reflux (신물) - Liver/Food" not in dyspepsia_specs:
-        session.dyspepsia_spec.append("Acid Reflux (신물) - Liver/Food")
+    if "신물 (Acid Reflux) - 간/식" not in dyspepsia_specs:
+        session.dyspepsia_spec.append("신물 (Acid Reflux) - 간/식")
     
     session.emot_anger = random.randint(3, 5)
     session.bitter_taste = True
     session.mouth_dry = random.randint(2, 4)
     
-    if "Bitter Taste (구고) - Heat" not in dyspepsia_specs:
-        session.dyspepsia_spec.append("Bitter Taste (구고) - Heat")
+    if "구고 (Bitter Taste) - 열" not in dyspepsia_specs:
+        session.dyspepsia_spec.append("구고 (Bitter Taste) - 열")
     
     # Tongue: Red with thin white coat
-    session.tongue_color = "Pale Red"
-    session.tongue_coat_color = "White"
-    session.tongue_coat_thick = "Thin"
+    session.tongue_color = "담홍"
+    session.tongue_coat_color = "백태"
+    session.tongue_coat_thick = "박태"
     
     # Pulse: Wiry
-    session.pulse_tension = "Tense (긴)"
+    session.pulse_tension = "긴맥"
 
 
 def _apply_spleen_stomach_damp_heat_pattern(session, dyspepsia_specs):
@@ -628,20 +630,20 @@ def _apply_spleen_stomach_damp_heat_pattern(session, dyspepsia_specs):
     session.nausea = random.randint(3, 5)
     session.nausea_sev = random.randint(3, 5)
     
-    if "Nausea/Vomiting (구역/구토) - Damp-Heat" not in dyspepsia_specs:
-        session.dyspepsia_spec.append("Nausea/Vomiting (구역/구토) - Damp-Heat")
+    if "구역/구토 (Nausea) - 습열" not in dyspepsia_specs:
+        session.dyspepsia_spec.append("구역/구토 (Nausea) - 습열")
     
-    session.cold_heat_body = "Hot (열)"
+    session.cold_heat_body = "열"
     session.bitter_taste = True
     session.mouth_dry = random.randint(2, 4)
     
     # Tongue: Red with yellow greasy coat
-    session.tongue_color = "Red"
-    session.tongue_coat_color = "Yellow"
-    session.tongue_coat_thick = "Greasy"
+    session.tongue_color = "홍설"
+    session.tongue_coat_color = "황태"
+    session.tongue_coat_thick = "니태"
     
     # Pulse: Slippery-rapid
-    session.pulse_smooth = "Smooth (활)"
+    session.pulse_smooth = "활맥"
 
 
 def _apply_cold_heat_complex_pattern(session, dyspepsia_specs):
@@ -655,15 +657,15 @@ def _apply_cold_heat_complex_pattern(session, dyspepsia_specs):
     session.cold_limbs_dyspepsia = True
     session.cold_hands_feet = True
     
-    if "Cold Limbs (수족냉증) - Deficiency" not in dyspepsia_specs:
-        session.dyspepsia_spec.append("Cold Limbs (수족냉증) - Deficiency")
+    if "수족냉증 (Cold Limbs) - 허" not in dyspepsia_specs:
+        session.dyspepsia_spec.append("수족냉증 (Cold Limbs) - 허")
     
     # Tongue: Pale with yellow coat
-    session.tongue_color = "Pale"
-    session.tongue_coat_color = "Yellow"
+    session.tongue_color = "담백"
+    session.tongue_coat_color = "황태"
     
     # Pulse: Wiry
-    session.pulse_tension = "Tense (긴)"
+    session.pulse_tension = "긴맥"
 
 
 def _apply_dyspepsia_food_stagnation_pattern(session, dyspepsia_specs):
@@ -678,29 +680,29 @@ def _apply_dyspepsia_food_stagnation_pattern(session, dyspepsia_specs):
     session.acid_reflux = True
     session.foul_belch = True
     session.belching = random.randint(3, 5)
-    session.belching_smell = "Foul (부패취)"
+    session.belching_smell = "부패취"
     
-    if "Foul Belching (부패취) - Food Stag" not in dyspepsia_specs:
-        session.dyspepsia_spec.append("Foul Belching (부패취) - Food Stag")
+    if "부패취 (Foul Belching) - 식적" not in dyspepsia_specs:
+        session.dyspepsia_spec.append("부패취 (Foul Belching) - 식적")
     
     session.nausea = random.randint(2, 4)
-    session.appetite = "None"
+    session.appetite = "없음"
     
     # [교수님 피드백] 과식 원인 제외 - 대체 원인 사용
     # 기존: "과식", "폭식", "많이 먹음" 등 제외
     # 대체: 소화기능 저하, 스트레스, 찬음식, 불규칙한 식사 등
     non_overeating_causes = [
-        "소화기능 저하 (Digestive Weakness)",
-        "스트레스/정서적 요인 (Stress/Emotional)",
-        "찬음식 섭취 (Cold Food Intake)",
-        "불규칙한 식사 (Irregular Meals)",
-        "기름진 음식 (Greasy Food)",
-        "급하게 먹음 (Eating Too Fast)"
+        "소화기능 저하",
+        "스트레스/정서적 요인",
+        "찬음식 섭취",
+        "불규칙한 식사",
+        "기름진 음식",
+        "급하게 먹음"
     ]
     session.dyspepsia_cause = random.choice(non_overeating_causes)
     
     # Tongue: Thick greasy coat
-    session.tongue_coat_thick = "Greasy"
+    session.tongue_coat_thick = "니태"
     
     # Pulse: Slippery
-    session.pulse_smooth = "Smooth (활)"
+    session.pulse_smooth = "활맥"

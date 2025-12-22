@@ -55,13 +55,13 @@ def _apply_appetite_digestion_correlations(session):
     - Dyspepsia correlates with upper abdominal symptoms (positive)
     """
     # Good appetite → better digestion
-    if session.appetite in ["High (항진)", "Normal (보통)"]:
-        if session.digestion in ["Bad (나쁨)", "Very Bad (매우 나쁨)"]:
+    if session.appetite in ["항진", "보통"]:
+        if session.digestion in ["나쁨", "매우 나쁨"]:
             if random.random() < 0.7:  # 70% correlation strength
-                session.digestion = random.choice(["Normal (보통)", "Good (좋음)"])
+                session.digestion = random.choice(["보통", "좋음"])
     
     # Poor digestion → GI symptoms
-    if session.digestion in ["Bad (나쁨)", "Very Bad (매우 나쁨)"]:
+    if session.digestion in ["나쁨", "매우 나쁨"]:
         if session.bloating < 2:
             session.bloating = random.randint(2, 4)
         if session.nausea < 2:
@@ -80,10 +80,10 @@ def _apply_anxiety_correlations(session):
     - OCD/Anxiety negatively correlates with good appetite/digestion
     """
     if session.emot_anxiety >= 4:
-        if session.appetite == "High (항진)":
-            session.appetite = random.choice(["Normal (보통)", "Low (저하)"])
-        if session.digestion == "Good (좋음)":
-            session.digestion = random.choice(["Normal (보통)", "Bad (나쁨)"])
+        if session.appetite == "항진":
+            session.appetite = random.choice(["보통", "저하"])
+        if session.digestion == "좋음":
+            session.digestion = random.choice(["보통", "나쁨"])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -103,8 +103,8 @@ def _apply_chest_correlations(session):
             session.emot_anxiety = random.randint(2, 4)
         if session.emot_depress < 2:
             session.emot_depress = random.randint(2, 3)
-        if session.sleep_depth == "Deep (깊음)":
-            session.sleep_depth = "Shallow/Light (얕음)"
+        if session.sleep_depth == "깊음":
+            session.sleep_depth = "얕음"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -144,10 +144,10 @@ def _apply_fatigue_correlations(session):
     - Fatigue-Pain positive correlation (r=0.435)
     - Fatigue-Weakness positive correlation (r=0.320)
     """
-    if session.fatigue_level in ["Severe (심함)", "Moderate (중등도)"]:
+    if session.fatigue_level in ["심함", "중등도"]:
         # Weakness should be present
-        if session.physical_strength == "Strong (강건)":
-            session.physical_strength = random.choice(["Normal (보통)", "Weak (허약)"])
+        if session.physical_strength == "강건":
+            session.physical_strength = random.choice(["보통", "허약"])
         # General pain tends to be present
         if session.pain_sev < 2 and random.random() < 0.4:
             session.pain_sev = random.randint(2, 4)
@@ -186,8 +186,8 @@ def _apply_sweat_heat_correlations(session):
     - Sweat amount and heat have NEGATIVE correlation (r=-0.372)
     - High sweat → body should NOT feel excessively hot (sweat cools body)
     """
-    if session.sweat_amt in ["Excessive (다한 多汗)", "Much (많음)"]:
-        if session.cold_heat_body in ["Hot (열)", "Hot (열 熱)"]:
+    if session.sweat_amt in ["다한", "많음"]:
+        if session.cold_heat_body in ["열"]:
             if session.heat_sensitivity >= 5:
                 session.heat_sensitivity = random.randint(2, 4)
 
@@ -227,8 +227,8 @@ def _apply_stress_sleep_correlations(session):
     - Sleep quality tends to decrease with stress
     """
     if session.chest_tight_sev >= 3 or session.emot_anxiety >= 4:
-        if session.sleep_waking_state == "Refreshed (개운함)":
-            session.sleep_waking_state = random.choice(["Tired (피곤함)", "Heavy (무거움)"])
+        if session.sleep_waking_state == "개운함":
+            session.sleep_waking_state = random.choice(["피곤함", "무거움"])
         if not session.insomnia_onset and random.random() < 0.4:
             session.insomnia_onset = True
 
@@ -276,8 +276,8 @@ def _apply_smoker_phlegm_correlation(session):
     if session.social_smoke_daily > 0:
         if session.phlegm_amt < 2:
             session.phlegm_amt = random.randint(2, 4)
-        if session.phlegm_color in ["Clear (맑음)", "None"]:
-            session.phlegm_color = random.choice(["White (백색)", "Yellow (황색)"])
+        if session.phlegm_color in ["맑음", "없음"]:
+            session.phlegm_color = random.choice(["백색", "황색"])
 
 
 def _apply_snot_consistency_rules(session):
@@ -286,9 +286,9 @@ def _apply_snot_consistency_rules(session):
     콧물이 없을 때 콧물색도 없어야 함
     """
     if session.snot_sev <= 1:
-        session.snot_type = "None (없음)"
+        session.snot_type = "없음"
         if hasattr(session, 'snot_color'):
-            session.snot_color = "None"
+            session.snot_color = "없음"
 
 
 def _apply_alternating_fever_chills_rules(session):
@@ -407,31 +407,31 @@ def _apply_cold_exam_findings_correlation(session):
     if hasattr(session, 'exam_stethoscope'):
         # High cough or phlegm → abnormal lung sounds
         if session.cough_sev >= 4 or (hasattr(session, 'phlegm_amt') and session.phlegm_amt >= 4):
-            if session.exam_stethoscope == "Normal":
-                session.exam_stethoscope = random.choice(["Rale (수포음)", "Wheezing (천명음)"])
+            if session.exam_stethoscope == "정상":
+                session.exam_stethoscope = random.choice(["수포음", "천명음"])
         
         # Dyspnea present → may have abnormal sounds
         if hasattr(session, 'cold_dyspnea') and session.cold_dyspnea:
-            if session.exam_stethoscope == "Normal" and random.random() < 0.5:
-                session.exam_stethoscope = random.choice(["Decreased (감소)", "Wheezing (천명음)"])
+            if session.exam_stethoscope == "정상" and random.random() < 0.5:
+                session.exam_stethoscope = random.choice(["감소", "천명음"])
     
     # Throat visual exam correlation with sore throat
     if hasattr(session, 'exam_throat_visual'):
         if hasattr(session, 'sore_throat') and session.sore_throat:
-            if session.exam_throat_visual == "Normal":
-                session.exam_throat_visual = random.choice(["Redness (발적)", "Swelling (부종)"])
+            if session.exam_throat_visual == "정상":
+                session.exam_throat_visual = random.choice(["발적", "부종"])
     
     # Rhinoscope findings correlation with nasal symptoms
     if hasattr(session, 'exam_rhinoscope_finding'):
         # Severe nasal congestion → congestion finding
         if session.nose_block_sev >= 3:
-            if session.exam_rhinoscope_finding == "Normal":
-                session.exam_rhinoscope_finding = random.choice(["Congestion (충혈)", "Discharge (분비물)"])
+            if session.exam_rhinoscope_finding == "정상":
+                session.exam_rhinoscope_finding = random.choice(["충혈", "분비물"])
         
         # High snot → discharge finding
         if session.snot_sev >= 3:
-            if session.exam_rhinoscope_finding == "Normal" and random.random() < 0.6:
-                session.exam_rhinoscope_finding = "Discharge (분비물)"
+            if session.exam_rhinoscope_finding == "정상" and random.random() < 0.6:
+                session.exam_rhinoscope_finding = "분비물"
 
 
 def _apply_cough_throat_correlation(session):
@@ -470,7 +470,7 @@ def _apply_body_ache_heaviness_correlation(session):
                 session.body_heaviness_cold = True
     
     # Fatigue correlation with body symptoms
-    if session.fatigue_level in ["Severe (심함)", "Moderate (중등도)"]:
+    if session.fatigue_level in ["심함", "중등도"]:
         if hasattr(session, 'body_heaviness_cold') and not session.body_heaviness_cold:
             if random.random() < 0.5:
                 session.body_heaviness_cold = True

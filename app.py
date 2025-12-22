@@ -20,6 +20,7 @@ from constraint_rules import apply_constraint_rules, apply_symptom_correlation_r
 # NOTE: symptom_correlations module is still used in background logic (constraint_rules.py)
 from randomizer import randomize_inputs
 from patient_generator import generate_patient
+from pdf_generator import generate_patient_pdf_korean
 
 # --- API KEY CONFIGURATION ---
 if API_KEY == "PASTE_YOUR_API_KEY_HERE" or not API_KEY:
@@ -60,10 +61,6 @@ with st.sidebar:
         "기능성소화불량"
     ]
     st.selectbox("질환", disease_opts, key="disease", label_visibility="collapsed")
-    
-    # ⚠️ Warning for unsupported diseases
-    if "요통" in st.session_state.disease or "소화불량" in st.session_state.disease:
-        st.warning("⚠️ **현재 감기/알레르기비염만 지원**\n\n요통/소화불량은 CSV 규칙 준비 후 지원 예정")
     
     # Pattern Selection based on disease
     disease_key = None
@@ -171,9 +168,17 @@ with st.expander("➤ 병력 및 생활습관", expanded=False):
             st.session_state.mens_cycle = 28
         w1, w2, w3, w4 = st.columns(4)
         with w1: st.selectbox("생리규칙성", ["규칙", "불규칙", "폐경"], key="mens_regular")
-        with w2: st.number_input("생리기간 (일)", 1, 10, key="mens_duration")
-        with w3: st.slider("생리통 (0-10)", 0, 10, key="mens_pain_score")
-        with w4: st.selectbox("생리혈 색", ["연함", "적색", "흑자색"], key="mens_color")
+        
+        # 폐경인 경우 생리 관련 정보 숨김
+        if st.session_state.mens_regular != "폐경":
+            with w2: st.number_input("생리기간 (일)", 1, 10, key="mens_duration")
+            with w3: st.slider("생리통 (0-10)", 0, 10, key="mens_pain_score")
+            with w4: st.selectbox("생리혈 색", ["연함", "적색", "흑자색"], key="mens_color")
+        else:
+            # 폐경 시 N/A로 표시
+            with w2: st.text("생리기간: N/A")
+            with w3: st.text("생리통: N/A")
+            with w4: st.text("생리혈 색: N/A")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 3: Excretion & Diet
@@ -200,7 +205,8 @@ with st.expander("➤ 수면, 땀, 한열경향", expanded=False):
     with s1:
         st.selectbox("기상시 상쾌도", ["개운함", "피곤함", "무거움"], key="sleep_waking_state")
         st.selectbox("수면 깊이", ["깊음", "얕음"], key="sleep_depth")
-        st.checkbox("입면장애", key="insomnia_onset")
+        st.slider("입면장애 정도", 0, 5, key="insomnia_onset", help="0=없음, 5=심함")
+        st.slider("중도각성 정도", 0, 5, key="insomnia_maintain", help="0=없음, 5=심함")
     with s2:
         st.selectbox("땀나는 부위", ["전신", "두부", "야간/도한"], key="sweat_area")
         st.selectbox("땀 후 느낌", ["상쾌", "피곤/냉함", "열감"], key="sweat_feeling")
@@ -231,7 +237,7 @@ with st.expander("➤ 정신상태 및 신체검진", expanded=False):
         st.slider("이명 강도", 0, 5, key="tinnitus_sev", help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
         st.slider("난청/이롱 강도", 0, 5, key="hearing_sev", help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
         st.slider("어지러움/두훈 강도", 0, 5, key="dizziness_sev", help="0=없음, 1-2=경미, 3-4=중등도, 5=심함")
-        st.selectbox("면색", ["정상", "창백", "홍조", "황달", "암색"], key="face_color")
+        st.selectbox("면색", ["정상", "창백", "홍조", "황색", "암색"], key="face_color")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 6: Pulse & Tongue Diagnosis
@@ -371,3 +377,38 @@ with st.expander("➤ 추가 증상 및 동반질환", expanded=False):
 st.markdown("---")
 if st.button("✨ 가상환자 시나리오 생성", type="primary", use_container_width=True):
     generate_patient(st, genai)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PDF DOWNLOAD BUTTON (shows after scenario is generated)
+# ═══════════════════════════════════════════════════════════════════════════════
+if st.session_state.get('scenario_generated', False):
+    st.markdown("---")
+    st.markdown("### 📥 시나리오 내보내기")
+    
+    # Generate PDF
+    try:
+        pdf_bytes = generate_patient_pdf_korean(
+            summary=st.session_state.get('generated_summary', ''),
+            scenario=st.session_state.get('generated_scenario', ''),
+            patient_info=st.session_state.get('generated_patient_info', {})
+        )
+        
+        # Ensure we have bytes type for Streamlit
+        if isinstance(pdf_bytes, bytearray):
+            pdf_bytes = bytes(pdf_bytes)
+        
+        # Create download button
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"patient_case_{timestamp}.pdf"
+        
+        st.download_button(
+            label="📄 PDF 다운로드",
+            data=pdf_bytes,
+            file_name=filename,
+            mime="application/pdf",
+            use_container_width=True
+        )
+        
+    except Exception as e:
+        st.error(f"PDF 생성 오류: Invalid binary data format: {type(pdf_bytes)}" if 'pdf_bytes' in dir() else f"PDF 생성 오류: {e}")

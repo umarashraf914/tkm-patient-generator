@@ -37,16 +37,25 @@ def apply_consistency_rules(session):
 
 def _apply_age_height_weight_constraints(session):
     """
-    Ensure height, weight, job, alcohol, and smoking are appropriate for the patient's age.
+    Ensure height, weight, job, alcohol, and smoking are appropriate for the patient's age and sex.
     
     Age-appropriate ranges (approximate Korean averages):
     - Minimum age is 10 (to match CSV rule categories)
-    - Adolescents (10-17): Height 130-175cm, Weight 30-70kg, Student only, No alcohol/smoking
-    - Young Adults (18-19): Height 155-185cm, Weight 45-85kg, Student or entry-level jobs
-    - Adults (20-64): Height 150-190cm, Weight 45-100kg, Any job
-    - Elderly (65+): Height 145-180cm, Weight 40-85kg
+    - Korean Male average height: ~172cm
+    - Korean Female average height: ~159cm
+    
+    Sex-specific height ranges:
+    - Male: Generally 160-185cm for adults
+    - Female: Generally 150-168cm for adults
+    
+    Age ranges:
+    - Adolescents (10-17): Growing, height varies by age
+    - Young Adults (18-19): Near adult height
+    - Adults (20-64): Full adult height
+    - Elderly (65+): May be slightly shorter
     """
     age = session.age
+    sex = session.sex  # "남" or "여"
     
     # Enforce minimum age = 10 (CSV rules start at age category 1 = 10-19)
     if age < 10:
@@ -54,13 +63,18 @@ def _apply_age_height_weight_constraints(session):
         age = 10
     
     # ===========================================
-    # MINORS (10-17): Strict constraints
+    # MINORS (10-17): Strict constraints (sex-specific)
     # ===========================================
     if age <= 17:
-        # Height: 10-year-old ~140cm, 17-year-old ~170cm
-        # UI minimum is 130cm
-        min_height = max(130, 130 + (age - 10) * 3)  # Grows ~3cm/year, min 130 for UI
-        max_height = 145 + (age - 10) * 4  # Max grows faster
+        # Height: grows with age, boys grow faster after ~13
+        if sex == "남":
+            min_height = max(130, 130 + (age - 10) * 4)  # Boys grow faster
+            max_height = 145 + (age - 10) * 5
+        else:
+            # Girls: earlier growth spurt, slower after ~14, max 170cm
+            min_height = max(130, 132 + (age - 10) * 3)
+            max_height = min(140 + (age - 10) * 4, 170)  # Cap at 170cm
+        
         if session.height > max_height:
             session.height = random.randint(min_height, max_height)
         if session.height < min_height:
@@ -88,13 +102,21 @@ def _apply_age_height_weight_constraints(session):
             session.social_smoke_daily = random.uniform(0, 3)
     
     # ===========================================
-    # YOUNG ADULTS (18-19): Some restrictions
+    # YOUNG ADULTS (18-19): Some restrictions (sex-specific)
     # ===========================================
     elif age <= 19:
-        if session.height > 190:
-            session.height = random.randint(160, 185)
-        if session.height < 155:
-            session.height = random.randint(158, 175)
+        if sex == "남":
+            if session.height > 190:
+                session.height = random.randint(165, 182)
+            if session.height < 160:
+                session.height = random.randint(162, 175)
+        else:
+            # Female young adults - max 170cm
+            if session.height > 170:
+                session.height = random.randint(155, 168)
+            if session.height < 150:
+                session.height = random.randint(152, 163)
+        
         if session.weight > 90:
             session.weight = random.randint(50, 80)
         if session.weight < 45:
@@ -105,20 +127,40 @@ def _apply_age_height_weight_constraints(session):
             session.job = random.choice(["학생", "사무직"])
     
     # ===========================================
-    # ADULTS (20-64): Normal ranges
+    # ADULTS (20-64): Normal ranges (sex-specific)
     # ===========================================
     elif age <= 64:
-        if session.height < 145:
-            session.height = random.randint(150, 175)
+        if sex == "남":
+            if session.height < 155:
+                session.height = random.randint(165, 178)
+            if session.height > 195:
+                session.height = random.randint(170, 185)
+        else:
+            # Female adults - max 170cm
+            if session.height > 170:
+                session.height = random.randint(155, 168)
+            if session.height < 148:
+                session.height = random.randint(152, 162)
+        
         if session.weight < 40:
             session.weight = random.randint(50, 70)
     
     # ===========================================
-    # ELDERLY (65+): Adjusted ranges
+    # ELDERLY (65+): Adjusted ranges (sex-specific, slight height decrease with age)
     # ===========================================
     else:
-        if session.height > 185:
-            session.height = random.randint(155, 175)
+        if sex == "남":
+            if session.height > 182:
+                session.height = random.randint(160, 175)
+            if session.height < 155:
+                session.height = random.randint(158, 170)
+        else:
+            # Female elderly - max 170cm
+            if session.height > 170:
+                session.height = random.randint(150, 163)
+            if session.height < 145:
+                session.height = random.randint(148, 158)
+        
         if session.weight > 95:
             session.weight = random.randint(55, 80)
         if session.weight < 40:
@@ -191,14 +233,14 @@ def _apply_mental_appetite_constraints(session):
     - Severe fatigue should lower motivation
     - Poor memory + High stress coping is inconsistent
     """
-    if session.appetite == "None" and session.motivation == "High (높음)":
-        session.motivation = "Low (낮음)"
+    if session.appetite == "없음" and session.motivation == "높음":
+        session.motivation = "낮음"
     
-    if session.fatigue_level == "Severe (심함)" and session.motivation == "High (높음)":
-        session.motivation = random.choice(["Normal (보통)", "Low (낮음)"])
+    if session.fatigue_level == "심함" and session.motivation == "높음":
+        session.motivation = random.choice(["보통", "낮음"])
     
-    if session.memory == "Bad (나쁨)" and session.stress_coping == "Good (좋음)":
-        session.stress_coping = random.choice(["Average (보통)", "Poor (나쁨)"])
+    if session.memory == "나쁨" and session.stress_coping == "좋음":
+        session.stress_coping = random.choice(["보통", "나쁨"])
 
 
 def _apply_bmi_body_constraints(session):
@@ -212,10 +254,10 @@ def _apply_bmi_body_constraints(session):
     height_m = session.height / 100
     bmi = session.weight / (height_m * height_m)
     
-    if bmi < 18.5 and session.body_solidity == "Solid (단단)":
-        session.body_solidity = "Soft (물렁)"
-    if bmi > 30 and session.body_solidity == "Soft (물렁)":
-        session.body_solidity = random.choice(["Normal (보통)", "Solid (단단)"])
+    if bmi < 18.5 and session.body_solidity == "단단":
+        session.body_solidity = "물렁"
+    if bmi > 30 and session.body_solidity == "물렁":
+        session.body_solidity = random.choice(["보통", "단단"])
 
 
 def _apply_sleep_constraints(session):
@@ -230,21 +272,21 @@ def _apply_sleep_constraints(session):
     - Frequent dreams/nightmares = shallow sleep
     """
     if session.sleep_hours <= 4:
-        session.sleep_waking_state = random.choice(["Tired", "Heavy"])
+        session.sleep_waking_state = random.choice(["피곤함", "무거움"])
     
-    if session.sleep_hours >= 8 and session.sleep_depth == "Deep (깊음)":
-        session.sleep_waking_state = "Refreshed"
+    if session.sleep_hours >= 8 and session.sleep_depth == "깊음":
+        session.sleep_waking_state = "개운함"
     
     if session.insomnia_onset or session.insomnia_maintain:
-        session.sleep_depth = "Shallow/Light (얕음)"
+        session.sleep_depth = "얕음"
     
     if session.urine_freq_night >= 3:
-        session.sleep_depth = "Shallow/Light (얕음)"
-        if session.sleep_waking_state == "Refreshed":
-            session.sleep_waking_state = "Tired"
+        session.sleep_depth = "얕음"
+        if session.sleep_waking_state == "개운함":
+            session.sleep_waking_state = "피곤함"
     
-    if session.dreams in ["Frequent (자주)", "Nightmares (악몽)"]:
-        session.sleep_depth = "Shallow/Light (얕음)"
+    if session.dreams in ["자주", "악몽"]:
+        session.sleep_depth = "얕음"
 
 
 def _apply_excretion_constraints(session):
@@ -255,11 +297,11 @@ def _apply_excretion_constraints(session):
     - Constipation + Loose stool is inconsistent
     - Frequent stool (2-3/day) shouldn't be hard
     """
-    if session.stool_freq == "Constipation" and session.stool_form == "Loose":
-        session.stool_form = "Hard"
+    if session.stool_freq == "변비" and session.stool_form == "묽음/연변":
+        session.stool_form = "굳음/경변"
     
-    if session.stool_freq == "2-3/day" and session.stool_form == "Hard":
-        session.stool_form = random.choice(["Normal", "Loose"])
+    if session.stool_freq == "2-3회/일" and session.stool_form == "굳음/경변":
+        session.stool_form = random.choice(["보통", "묽음/연변"])
 
 
 def _apply_pulse_tongue_constraints(session):
@@ -270,8 +312,8 @@ def _apply_pulse_tongue_constraints(session):
     - Strong pulse + Pale tongue (deficiency sign) is rare
     - Weak pulse + Red tongue (heat sign) is inconsistent
     """
-    if session.pulse_strength == "Strong" and session.tongue_color == "Pale":
-        session.tongue_color = random.choice(["Pale Red", "Red"])
+    if session.pulse_strength == "강력" and session.tongue_color == "담백":
+        session.tongue_color = random.choice(["담홍", "홍설"])
     
-    if session.pulse_strength == "Weak" and session.tongue_color == "Red":
-        session.tongue_color = random.choice(["Pale", "Pale Red"])
+    if session.pulse_strength == "무력" and session.tongue_color == "홍설":
+        session.tongue_color = random.choice(["담백", "담홍"])

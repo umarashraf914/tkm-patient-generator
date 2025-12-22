@@ -67,6 +67,7 @@ SESSION_DEFAULTS = {
     # ===========================================
     "onset": "1주 전",  # 증상 발현시점
     "course": "악화중",  # 경과
+    "episode": "",  # 발병 에피소드 (발병 계기)
     "past_illness": [],  # 과거 질병 경험
     "past_cold_problem_area": [],  # 과거 감기증상 시 문제가 되는 부위
     "aggravating_factors": [],  # 악화요인
@@ -151,10 +152,10 @@ SESSION_DEFAULTS = {
     "sleep_depth": "깊음",  # 수면 깊이
     "insomnia_freq": 0,  # 불면 빈도 (0-5)
     "dreams": "거의 없음",  # 꿈의 빈도 및 내용
-    "insomnia_onset": False,  # 입면장애
-    "insomnia_maintain": False,  # 수면 중도 각성
+    "insomnia_onset": 0,  # 입면장애 정도 (0-5, 0=없음)
+    "insomnia_maintain": 0,  # 중도각성 정도 (0-5, 0=없음)
     "insomnia_maintain_count": 0,  # 수면 중도 각성 횟수
-    "insomnia_reentry": False,  # 수면 중도 각성 후 재입면 장애
+    "insomnia_reentry": 0,  # 재입면장애 정도 (0-5, 0=없음)
 
     # ===========================================
     # 땀 (Sweat) - Page 19
@@ -429,7 +430,15 @@ SESSION_DEFAULTS = {
     # Additional symptoms for realistic patient generation
     # ===========================================
     "additional_symptoms": [],  # 한의원 다빈도 증상 중 무작위 1-2개 추가
-    "additional_comorbidities": []  # 다빈도 동반질환 중 무작위 0-2개 추가
+    "additional_comorbidities": [],  # 다빈도 동반질환 중 무작위 0-2개 추가
+    
+    # ===========================================
+    # PDF Export (시나리오 내보내기)
+    # ===========================================
+    "scenario_generated": False,  # 시나리오 생성 여부
+    "generated_summary": "",  # 생성된 요약
+    "generated_scenario": "",  # 생성된 시나리오
+    "generated_patient_info": {},  # 환자 기본 정보
 }
 
 

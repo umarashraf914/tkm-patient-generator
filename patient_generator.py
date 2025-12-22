@@ -17,24 +17,17 @@ def generate_patient(st, genai):
         st: Streamlit module
         genai: Google Generative AI module
     
-    Note: Currently only 감기 (Common Cold) and 알레르기비염 (Allergic Rhinitis)
-    are supported because CSV rules are only available for these diseases.
+    All 4 diseases are now supported:
+    - 감기 (Common Cold)
+    - 알레르기비염 (Allergic Rhinitis)
+    - 기능성소화불량 (Functional Dyspepsia)
+    - 요통 (Low Back Pain)
     """
     session = st.session_state
     
     # ═══════════════════════════════════════════════════════════════════
-    # CHECK FOR SUPPORTED DISEASES
-    # Currently only 감기 and 알레르기비염 have CSV generation rules
-    # Use Korean keywords to match UI dropdown options
+    # All 4 diseases are now supported with CSV generation rules
     # ═══════════════════════════════════════════════════════════════════
-    supported_diseases = ["감기", "비염"]  # Korean keywords
-    is_supported = any(d in session.disease for d in supported_diseases)
-    
-    if not is_supported:
-        st.warning("⚠️ **현재 감기와 알레르기비염만 지원됩니다.**\n\n"
-                   "요통 및 기능성소화불량에 대한 CSV 규칙이 준비되면 지원될 예정입니다.\n\n"
-                   "Please select **Common Cold (감기)** or **Allergic Rhinitis (알레르기비염)** to generate patient scenarios.")
-        return
     
     # ═══════════════════════════════════════════════════════════════════
     # NOTE: Constraints are applied during randomization, not here
@@ -104,16 +97,45 @@ def generate_patient(st, genai):
             data = json.loads(response.text)
             st.success("✅ 환자 시나리오 생성 완료")
             
+            # Store generated data in session state for PDF export
+            session.generated_summary = data.get('요약', '요약 없음')
+            session.generated_scenario = data.get('환자시나리오', data.get('초진기록', '기록 없음'))
+            session.generated_patient_info = {
+                'disease': session.disease,
+                'pattern': selected_pattern,
+                'age': session.age,
+                'sex': session.sex,
+                'height': session.height,
+                'weight': session.weight,
+                'sbp': session.sbp,
+                'dbp': session.dbp,
+                'pulse_rate': session.pulse_rate,
+                'temp': session.temp,
+            }
+            session.scenario_generated = True
+            
             # Display summary
-            st.subheader(data.get('요약', '요약 없음'))
+            st.subheader(session.generated_summary)
             
             # Display patient scenario (no tabs needed - single output)
             st.markdown("---")
             st.markdown("### 📋 가상환자 시나리오")
-            st.markdown(data.get('환자시나리오', data.get('초진기록', '기록 없음')))
+            st.markdown(session.generated_scenario)
                 
         except Exception as e:
             st.error(f"오류 발생: {e}")
+            session.scenario_generated = False
+
+
+def _get_menstrual_info(session):
+    """폐경 여부에 따라 여성력 정보 반환"""
+    if session.sex != "여":
+        return "해당없음 (남성)"
+    
+    if session.get('mens_regular', '') == "폐경":
+        return "폐경"
+    else:
+        return f"생리주기 {session.get('mens_cycle', 'N/A')}일, 규칙성 {session.get('mens_regular', 'N/A')}, 기간 {session.get('mens_duration', 'N/A')}일, 생리통 {session.get('mens_pain_score', 0)}/10, 생리혈색 {session.get('mens_color', 'N/A')}"
 
 
 def _build_generation_prompt(session, selected_pattern,
@@ -138,6 +160,23 @@ def _build_generation_prompt(session, selected_pattern,
     ⚠️ 중요: 변증(辨證), 치법(治法), 처방(處方)은 절대 생성하지 마세요!
     이 시나리오는 의사 교육용입니다. 의사가 직접 진단을 내립니다.
     
+    ⚠️ 중요: 모든 출력은 100% 한국어로만 작성하세요!
+    영어 번역이나 영어 단어를 절대 포함하지 마세요.
+    
+    ❌ 금지 예시 (영어 포함):
+    - "70세 Female 환자" → ✅ "70세 여 환자"
+    - "사무직(Office)" → ✅ "사무직"
+    - "요통(Back Pain)" → ✅ "요통"
+    - "암색(Dark)" → ✅ "암색"
+    - "오한 경향(Cold Sens)" → ✅ "오한 경향"
+    - "야간도한(Night Sweat)" → ✅ "야간도한"
+    - "의욕(Motivation)" → ✅ "의욕"
+    - "고혈압(HTN)" → ✅ "고혈압"
+    - "당뇨(DM)" → ✅ "당뇨"
+    - "냉수(Icy)" → ✅ "냉수"
+    
+    모든 괄호 안의 영어 번역을 삭제하세요!
+    
     ## 환자 정보 (Patient Data)
     
     ### 1. 인구학적정보 및 활력징후
@@ -146,6 +185,7 @@ def _build_generation_prompt(session, selected_pattern,
     - 신장/체중/BMI: {session.height}cm / {session.weight}kg / BMI {bmi_str}
     - 발현시점: {session.onset}
     - 경과: {session.course}
+    - 발병 에피소드: {session.get('episode', '특별한 계기 없이 발생')}
     - 활력징후: BP {session.sbp}/{session.dbp} mmHg, 맥박 {session.pulse_rate}회/분, 체온 {session.temp}°C, 호흡 {session.resp}회/분
     
     ### 2. 병력 및 생활습관
@@ -157,7 +197,7 @@ def _build_generation_prompt(session, selected_pattern,
     - 음주: {session.social_alcohol_freq}
     - 흡연: {session.social_smoke_daily}개피/일
     - 운동강도: {session.social_exercise_int}
-    - 여성력 (해당시): 생리주기 {session.get('mens_cycle', 'N/A')}일, 규칙성 {session.get('mens_regular', 'N/A')}, 기간 {session.get('mens_duration', 'N/A')}일, 생리통 {session.get('mens_pain_score', 0)}/10, 생리혈색 {session.get('mens_color', 'N/A')}
+    - 여성력: {_get_menstrual_info(session)}
     
     ### 3. 배설 및 식사
     - 식사횟수: {session.diet_freq}회/일, {session.diet_regular}
@@ -167,7 +207,7 @@ def _build_generation_prompt(session, selected_pattern,
     
     ### 4. 수면, 땀, 한열
     - 수면: {session.sleep_hours}시간, {session.sleep_depth}, 기상시 {session.sleep_waking_state}
-    - 입면장애: {session.insomnia_onset}, 중도각성: {session.insomnia_maintain}
+    - 입면장애: {session.insomnia_onset}/5, 중도각성: {session.insomnia_maintain}/5
     - 땀: {session.sweat_amt}, {session.sweat_area}, 땀흘린후 {session.get('sweat_feeling', 'N/A')}
     - 한열경향: {session.cold_heat_pref}
     - 음료온도선호: {session.drink_temp}
@@ -199,7 +239,7 @@ def _build_generation_prompt(session, selected_pattern,
     - 오한: {chills_desc} ({session.chills_sev}/5)
     - 콧물: {snot_desc} ({session.snot_sev}/5), 색: {session.get('snot_color', 'N/A')}
     - 기침: {cough_desc} ({session.cough_sev}/5)
-    - 가래: 양 {session.get('phlegm_amt', 0)}/5, 색 {session.get('phlegm_color', 'None')}
+    - 가래: 양 {session.get('phlegm_amt', 0)}/5, 색 {session.get('phlegm_color', '없음')}
     - 기타 증상: {session.cold_symptoms_spec}
     - 감기주소증 유형: {session.get('cold_chief_type', [])}
     - 발병일: {session.get('cold_onset_specific', 'N/A')}
@@ -214,10 +254,10 @@ def _build_generation_prompt(session, selected_pattern,
     - 한열왕래: {session.get('alternating_chills_fever', 0)}/5
     
     **감기 진찰소견 (해당시):**
-    - 청진기 호흡음: {session.get('exam_stethoscope', 'Normal')}
-    - 인후부 망진/촉진: {session.get('exam_throat_visual', 'Normal')}
-    - 설압자 편도소견: {session.get('exam_tongue_depressor', 'Normal')}
-    - 비경 소견: {session.get('exam_rhinoscope_finding', 'Normal')}
+    - 청진기 호흡음: {session.get('exam_stethoscope', '정상')}
+    - 인후부 망진/촉진: {session.get('exam_throat_visual', '정상')}
+    - 설압자 편도소견: {session.get('exam_tongue_depressor', '정상')}
+    - 비경 소견: {session.get('exam_rhinoscope_finding', '정상')}
     
     **비염 증상 (해당시):**
     - 재채기: {sneeze_desc} ({session.sneeze_sev}/5)
@@ -252,6 +292,9 @@ def _build_generation_prompt(session, selected_pattern,
         【주소증】
         [발현시점]부터 [주요증상]을 주소로 내원하였다.
         
+        【발병 에피소드】
+        [발병 전 상황을 구체적으로 기술. 예: '3일 전 영하 10도의 날씨에 버스 정류장에서 40분간 대기한 후 다음날부터 오한과 발열이 시작되었다.' 또는 '과로와 수면 부족이 지속된 후 증상이 발생하였다.' 등 발병 계기를 서술]
+        
         【현병력】
         [증상의 발생, 경과, 양상, 악화/완화 요인을 상세히 기술]
         
@@ -277,7 +320,7 @@ def _build_generation_prompt(session, selected_pattern,
         【신체검진 소견】
         - 활력징후: BP, 맥박, 체온, 호흡
         - 전신 상태: 피로감, 체력, 부종, 피부 상태
-        - 면색: 창백/홍조/황달/정상 등
+        - 면색: 창백/홍조/황색/정상 등
         
         【설진 소견】
         - 설질: 색깔, 크기, 형태

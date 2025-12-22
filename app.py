@@ -246,10 +246,9 @@ with st.expander("➤ 맥진 및 설진", expanded=False):
     p1, p2 = st.columns(2)
     with p1:
         st.markdown("**맥진**")
-        st.selectbox("맥 부침", ["부맥", "중맥", "침맥"], key="pulse_depth")
-        st.selectbox("맥 대세/폭", ["세맥", "대맥", "홍맥"], key="pulse_width")
-        st.selectbox("맥 유력/무력", ["무력", "유력", "강력"], key="pulse_strength")
-        st.selectbox("맥 활삽", ["활맥", "완맥", "삽맥"], key="pulse_smooth")
+        # 복합맥만 표시 (맥위, 맥폭, 맥력, 맥상은 제거 - Prof. Lee feedback)
+        st.text(f"맥상: {st.session_state.get('compound_pulse', '완맥')}")
+        st.caption("(맥상은 질환/변증에 따라 자동 설정됩니다)")
     with p2:
         st.markdown("**설진**")
         st.selectbox("설질 색", ["담백", "담홍", "홍설", "강홍/자설"], key="tongue_color")

@@ -95,7 +95,7 @@ def build_system_prompt(session, symptom_descriptions, selected_pattern=None):
     - 면색: {session.face_color}
     
     ### 6. 맥진 및 설진
-    - 맥진: {session.pulse_depth}, {session.pulse_width}, {session.pulse_strength}, {session.pulse_smooth}
+    - 맥상: {session.get('compound_pulse', '완맥')}
     - 설질: {session.tongue_color}, {session.tongue_size}
     - 설태: {session.tongue_coat_color}, {session.tongue_coat_thick}
     

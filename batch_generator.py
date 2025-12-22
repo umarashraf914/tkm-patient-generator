@@ -403,8 +403,7 @@ def _build_batch_prompt(session, selected_pattern,
     - 한열경향: {session.cold_heat_pref}
     
     ### 5. 맥진 및 설진
-    - 복합맥: {session.get('compound_pulse', '완맥')}
-    - 맥: {session.pulse_depth}, {session.pulse_width}, {session.pulse_strength}
+    - 맥상: {session.get('compound_pulse', '완맥')}
     - 설질: {session.tongue_color}, {session.tongue_size}
     - 설태: {session.tongue_coat_color}, {session.tongue_coat_thick}
     - 면색: {session.face_color}

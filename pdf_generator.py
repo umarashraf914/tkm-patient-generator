@@ -72,10 +72,15 @@ def generate_patient_pdf(summary: str, scenario: str, patient_info: dict = None)
         pdf.cell(0, 8, 'Patient Information', new_x='LMARGIN', new_y='NEXT')
         pdf.set_font('Helvetica', '', 10)
         
+        # Use _make_safe_text for Korean values
+        disease = _make_safe_text(str(patient_info.get('disease', 'N/A')))
+        pattern = _make_safe_text(str(patient_info.get('pattern', 'N/A')))
+        sex = _make_safe_text(str(patient_info.get('sex', 'N/A')))
+        
         info_items = [
-            ('Disease', patient_info.get('disease', 'N/A')),
-            ('Pattern', patient_info.get('pattern', 'N/A')),
-            ('Age/Sex', f"{patient_info.get('age', 'N/A')} / {patient_info.get('sex', 'N/A')}"),
+            ('Disease', disease),
+            ('Pattern', pattern),
+            ('Age/Sex', f"{patient_info.get('age', 'N/A')} / {sex}"),
             ('Height/Weight', f"{patient_info.get('height', 'N/A')}cm / {patient_info.get('weight', 'N/A')}kg"),
             ('Vitals', f"BP {patient_info.get('sbp', 'N/A')}/{patient_info.get('dbp', 'N/A')} mmHg, "
                       f"HR {patient_info.get('pulse_rate', 'N/A')}/min, "
@@ -84,7 +89,8 @@ def generate_patient_pdf(summary: str, scenario: str, patient_info: dict = None)
         
         for label, value in info_items:
             pdf.cell(40, 6, f'{label}:', new_x='RIGHT')
-            pdf.cell(0, 6, str(value), new_x='LMARGIN', new_y='NEXT')
+            safe_value = _make_safe_text(str(value)) if not isinstance(value, (int, float)) else str(value)
+            pdf.cell(0, 6, safe_value, new_x='LMARGIN', new_y='NEXT')
         
         pdf.ln(5)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
@@ -150,6 +156,13 @@ def _make_safe_text(text: str) -> str:
         '】': ']',
         '→': '->',
         '°': ' deg ',
+        
+        # Disease names (질환명)
+        '감기': 'Common Cold',
+        '알레르기비염': 'Allergic Rhinitis',
+        '기능성소화불량': 'Functional Dyspepsia',
+        '기능성 소화불량': 'Functional Dyspepsia',
+        '요통': 'Low Back Pain',
         
         # Common medical terms (한의학)
         '환자정보': '[Patient Info]',
@@ -223,24 +236,65 @@ def _make_safe_text(text: str) -> str:
         '어혈형': 'Blood Stasis',
         '기체형': 'Qi Stagnation',
         
+        # 요통 patterns
+        '신허형': 'Kidney Deficiency',
+        '풍한습비형': 'Wind-Cold-Damp',
+        '어혈형': 'Blood Stasis',
+        '습열형': 'Damp-Heat',
+        
+        # 소화불량 patterns  
+        '간위불화형': 'Liver-Stomach Disharmony',
+        '비위허약형': 'Spleen-Stomach Deficiency',
+        '음식정체형': 'Food Stagnation',
+        '위음부족형': 'Stomach Yin Deficiency',
+        
+        # Pattern with prescription (처방)
+        '오적산': 'Ojeoksan',
+        '갈근탕': 'Galgeuntang',
+        '삼소음': 'Samsoeum',
+        '소청룡탕': 'Socheongnyongtang',
+        '형개연교탕': 'Hyeonggaeyeongyotang',
+        '보중익기탕': 'Bojungikgitang',
+        '평위산': 'Pyeongwisan',
+        '소요산': 'Soyosan',
+        '육군자탕': 'Yukgunja-tang',
+        '독활기생탕': 'Dokhwalgisaengtang',
+        '신기환': 'Singihwan',
+        
         # Tongue/Pulse
         '설질': 'Tongue body',
         '설태': 'Tongue coating',
         '부맥': 'Floating pulse',
         '침맥': 'Sinking pulse',
+        '중맥': 'Middle pulse',
         '세맥': 'Thin pulse',
+        '대맥': 'Large pulse',
         '홍맥': 'Flooding pulse',
         '유력': 'Strong',
         '무력': 'Weak',
+        '강력': 'Very Strong',
         '활맥': 'Slippery pulse',
+        '완맥': 'Moderate pulse',
         '삽맥': 'Rough pulse',
+        '유맥': 'Soft pulse',
+        '긴맥': 'Tense pulse',
         '담백': 'Pale',
         '담홍': 'Pale red',
         '홍설': 'Red',
+        '강홍': 'Dark red',
+        '자설': 'Purple',
         '백태': 'White coating',
         '황태': 'Yellow coating',
+        '회태': 'Grey coating',
         '박태': 'Thin coating',
         '후태': 'Thick coating',
+        '니태': 'Greasy coating',
+        '조태': 'Dry coating',
+        '윤태': 'Moist coating',
+        '활태': 'Wet coating',
+        '소': 'Small',
+        '정상': 'Normal',
+        '대/태': 'Enlarged',
     }
     
     result = text
@@ -249,9 +303,20 @@ def _make_safe_text(text: str) -> str:
     
     # Remove any remaining non-ASCII characters that FPDF can't handle
     # This is a fallback - ideally we'd use a Korean-supporting font
-    result = result.encode('ascii', 'replace').decode('ascii')
+    try:
+        result = result.encode('ascii', 'replace').decode('ascii')
+    except:
+        result = ''.join(c if ord(c) < 128 else '?' for c in result)
     
     return result
+
+
+def _make_safe_value(value) -> str:
+    """Convert any value to ASCII-safe string for PDF."""
+    if value is None:
+        return "N/A"
+    text = str(value)
+    return _make_safe_text(text)
 
 
 def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict = None) -> bytes:

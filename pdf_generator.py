@@ -332,38 +332,42 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
         PDF file as bytes
     """
     import os
+    import pathlib
     
     # Try to create PDF with Unicode support
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Korean font paths - check bundled font first, then system fonts
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Get the directory where this script is located (works on Streamlit Cloud)
+    script_dir = pathlib.Path(__file__).parent.resolve()
+    
+    # Korean font paths - prioritize bundled font
     font_paths = [
-        os.path.join(script_dir, "fonts", "NanumGothic.ttf"),  # Bundled font (for Streamlit Cloud)
-        "fonts/NanumGothic.ttf",  # Relative path
-        "C:/Windows/Fonts/malgun.ttf",  # Windows Malgun Gothic
-        "C:/Windows/Fonts/NanumGothic.ttf",  # Windows NanumGothic
-        "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",  # Linux
-        "/System/Library/Fonts/AppleSDGothicNeo.ttc",  # macOS
+        script_dir / "fonts" / "NanumGothic.ttf",  # Bundled font (primary for cloud)
+        pathlib.Path("fonts/NanumGothic.ttf").resolve(),  # Relative path
+        pathlib.Path.cwd() / "fonts" / "NanumGothic.ttf",  # Current working directory
+        pathlib.Path("C:/Windows/Fonts/malgun.ttf"),  # Windows Malgun Gothic
+        pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),  # Windows NanumGothic
+        pathlib.Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),  # Linux
+        pathlib.Path("/System/Library/Fonts/AppleSDGothicNeo.ttc"),  # macOS
     ]
     
     font_added = False
+    used_font_path = None
     for font_path in font_paths:
-        if os.path.exists(font_path):
+        if font_path.exists():
             try:
-                pdf.add_font("Korean", "", font_path, uni=True)
+                pdf.add_font("Korean", "", str(font_path), uni=True)
                 pdf.set_font("Korean", "", 12)
                 font_added = True
-                print(f"Using Korean font: {font_path}")
+                used_font_path = str(font_path)
                 break
-            except Exception as e:
-                print(f"Failed to load font {font_path}: {e}")
+            except Exception:
                 continue
     
     if not font_added:
-        print("No Korean font found, falling back to ASCII version")
+        # Fallback to ASCII version if no Korean font found
         return generate_patient_pdf(summary, scenario, patient_info)
     
     # Title

@@ -77,7 +77,11 @@ def generate_patient(st, genai):
         idx = session.get("pattern_idx", 0)
         if 0 <= idx < len(patterns):
             p = patterns[idx]
-            selected_pattern = f"{p['name']} → {', '.join(p['prescriptions'])}"
+            # For 알레르기비염, prescription name IS the pattern name
+            if disease_key == "알레르기비염":
+                selected_pattern = p['name']
+            else:
+                selected_pattern = f"{p['name']} → {', '.join(p['prescriptions'])}"
     
     # Build the prompt
     # Calculate BMI for prompt

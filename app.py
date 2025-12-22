@@ -75,7 +75,11 @@ with st.sidebar:
 
     if disease_key and disease_key in DISEASE_PATTERNS:
         patterns = DISEASE_PATTERNS[disease_key]["patterns"]
-        pattern_display = [f"{p['name']} → {', '.join(p['prescriptions'])}" for p in patterns]
+        # For 알레르기비염, prescription name IS the pattern name, so don't repeat
+        if disease_key == "알레르기비염":
+            pattern_display = [p['name'] for p in patterns]
+        else:
+            pattern_display = [f"{p['name']} → {', '.join(p['prescriptions'])}" for p in patterns]
         
         if st.session_state.pattern_idx >= len(pattern_display):
             st.session_state.pattern_idx = 0

@@ -342,7 +342,11 @@ def generate_scenario_with_gemini(model, session: MockSessionState) -> tuple[str
         idx = session.get("pattern_idx", 0)
         if 0 <= idx < len(patterns):
             p = patterns[idx]
-            selected_pattern = f"{p['name']} → {', '.join(p['prescriptions'])}"
+            # For 알레르기비염, prescription name IS the pattern name
+            if disease_key == "알레르기비염":
+                selected_pattern = p['name']
+            else:
+                selected_pattern = f"{p['name']} → {', '.join(p['prescriptions'])}"
     
     # Store pattern name for PDF
     session.pattern_name = selected_pattern

@@ -84,9 +84,15 @@ DISEASE_PATTERNS = {
     "알레르기비염": {
         "kcd_code": "J30",
         "patterns": [
-            {"id": "R_Fluid", "name": "수체형 (水滯型)", "prescriptions": ["월비가반하탕", "사간마황탕", "소청룡탕", "영감강미신하인탕", "마황부자세신탕"]}
+            # Prof. Lee feedback: Use prescription names as pattern group names for 알레르기비염
+            # (Since there's only 1 pattern group, use prescriptions directly as groups)
+            {"id": "R_WBG", "name": "월비가반하탕", "prescriptions": ["월비가반하탕"]},
+            {"id": "R_SGM", "name": "사간마황탕", "prescriptions": ["사간마황탕"]},
+            {"id": "R_SCY", "name": "소청룡탕", "prescriptions": ["소청룡탕"]},
+            {"id": "R_YGG", "name": "영감강미신하인탕", "prescriptions": ["영감강미신하인탕"]},
+            {"id": "R_MHB", "name": "마황부자세신탕", "prescriptions": ["마황부자세신탕"]}
         ],
-        "note": "알레르기 비염의 경우 다양한 변증형 중 수체형 알러지 비염을 단일로 선정 (Page 23)"
+        "note": "알레르기 비염 - 처방명을 변증그룹명으로 사용 (Prof. Lee feedback)"
     },
     "요통": {
         "kcd_code": "M54",

@@ -331,54 +331,51 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     Returns:
         PDF file as bytes
     """
-    import os
     import pathlib
-    import streamlit as st
+    import shutil
+    import tempfile
     
     # Try to create PDF with Unicode support
     pdf = FPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Get the directory where this script is located (works on Streamlit Cloud)
+    # Get the directory where this script is located
     script_dir = pathlib.Path(__file__).parent.resolve()
     
-    # Korean font paths - prioritize bundled font
+    # Korean font paths to check
     font_paths = [
-        script_dir / "fonts" / "NanumGothic.ttf",  # Bundled font (primary for cloud)
+        script_dir / "fonts" / "NanumGothic.ttf",  # Bundled font
         pathlib.Path("fonts/NanumGothic.ttf").resolve(),  # Relative path
         pathlib.Path.cwd() / "fonts" / "NanumGothic.ttf",  # Current working directory
-        pathlib.Path("/mount/src/tkm-patient-generator/fonts/NanumGothic.ttf"),  # Streamlit Cloud mount path
-        pathlib.Path("/app/fonts/NanumGothic.ttf"),  # Alternative cloud path
-        pathlib.Path("C:/Windows/Fonts/malgun.ttf"),  # Windows Malgun Gothic
-        pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),  # Windows NanumGothic
-        pathlib.Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),  # Linux
-        pathlib.Path("/System/Library/Fonts/AppleSDGothicNeo.ttc"),  # macOS
+        pathlib.Path("/app/fonts/NanumGothic.ttf"),  # Streamlit Cloud path
+        pathlib.Path("/mount/src/tkm-patient-generator/fonts/NanumGothic.ttf"),  # Streamlit Cloud mount
+        pathlib.Path("C:/Windows/Fonts/malgun.ttf"),  # Windows
+        pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),  # Windows
     ]
     
     font_added = False
-    used_font_path = None
-    debug_info = []
     
     for font_path in font_paths:
-        debug_info.append(f"{font_path}: exists={font_path.exists()}")
         if font_path.exists():
             try:
-                pdf.add_font("Korean", "", str(font_path), uni=True)
+                # Copy font to temp directory to avoid permission issues on Streamlit Cloud
+                temp_dir = pathlib.Path(tempfile.gettempdir())
+                temp_font_path = temp_dir / "NanumGothic.ttf"
+                
+                # Only copy if not already there or if source is newer
+                if not temp_font_path.exists():
+                    shutil.copy2(str(font_path), str(temp_font_path))
+                
+                pdf.add_font("Korean", "", str(temp_font_path), uni=True)
                 pdf.set_font("Korean", "", 12)
                 font_added = True
-                used_font_path = str(font_path)
                 break
-            except Exception as e:
-                debug_info.append(f"  -> Failed to load: {e}")
+            except Exception:
                 continue
     
     if not font_added:
-        # Show error in Streamlit instead of silently falling back
-        error_msg = f"Korean font not found! Checked paths:\n" + "\n".join(debug_info)
-        st.error(error_msg)
-        st.info(f"Script dir: {script_dir}, CWD: {pathlib.Path.cwd()}")
-        # Still fallback but now we know why
+        # Fallback to ASCII version if no Korean font found
         return generate_patient_pdf(summary, scenario, patient_info)
     
     # Title

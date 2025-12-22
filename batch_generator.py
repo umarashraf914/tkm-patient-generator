@@ -26,10 +26,17 @@ import sys
 import time
 import json
 import hashlib
+import warnings
+import logging
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass, field, asdict
+
+# Suppress font subsetting warnings (harmless - from fonttools library)
+warnings.filterwarnings("ignore", message=".*MERG.*subset.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="fontTools")
+logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -57,6 +64,18 @@ DISEASES = ["감기", "알레르기비염", "기능성 소화불량", "요통"]
 CASES_PER_DISEASE = 200
 OUTPUT_DIR = Path("output")
 API_DELAY = 1.5  # Seconds between API calls to avoid rate limiting
+
+# Disease name mapping (display name -> CSV key name)
+DISEASE_NAME_MAP = {
+    "감기": "감기",
+    "알레르기비염": "알레르기비염",
+    "기능성 소화불량": "기능성소화불량",  # CSV uses no space
+    "요통": "요통",
+}
+
+def normalize_disease_name(disease: str) -> str:
+    """Normalize disease name to match CSV_PATHS keys."""
+    return DISEASE_NAME_MAP.get(disease, disease.replace(" ", ""))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -231,6 +250,9 @@ def generate_patient_hash(session: MockSessionState) -> str:
 def generate_unique_patient(disease: str, existing_hashes: set, max_attempts: int = 50) -> Optional[MockSessionState]:
     """Generate a unique patient for the given disease."""
     
+    # Normalize disease name for CSV lookup
+    csv_disease_name = normalize_disease_name(disease)
+    
     for attempt in range(max_attempts):
         # Create mock streamlit
         st_mock = MockStreamlit()
@@ -242,8 +264,8 @@ def generate_unique_patient(disease: str, existing_hashes: set, max_attempts: in
         # Randomize all fields
         randomize_inputs(st_mock)
         
-        # Randomize from CSV rules for the disease
-        randomize_from_csv_rules(st_mock, disease)
+        # Randomize from CSV rules for the disease (use normalized name)
+        randomize_from_csv_rules(st_mock, csv_disease_name)
         
         # Apply all constraints
         apply_all_constraint_rules(st_mock)

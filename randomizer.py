@@ -863,8 +863,14 @@ def get_weighted_level(variable_key, pattern_key, levels=None):
     return random.choices(levels, weights=weights, k=1)[0]
 
 
-def randomize_inputs(st):
-    """Randomize all patient input fields."""
+def randomize_inputs(st, randomize_disease=True):
+    """Randomize all patient input fields.
+    
+    Args:
+        st: Streamlit instance (or mock)
+        randomize_disease: If True, always randomize the disease. 
+                          If False, keep existing disease if set (for batch generation).
+    """
     session = st.session_state
     
     log_layer_start("LAYER 1: Hardcoded Random Values")
@@ -1149,8 +1155,11 @@ def randomize_inputs(st):
         "기능성소화불량",
         "요통"
     ]
-    # Only set disease if not already set (allows batch generator to pre-set disease)
-    if not hasattr(session, 'disease') or session.disease is None or session.disease == "":
+    
+    # Randomize disease if requested, otherwise keep existing (for batch generation)
+    if randomize_disease:
+        session.disease = random.choice(supported_disease_opts)
+    elif not hasattr(session, 'disease') or session.disease is None or session.disease == "":
         session.disease = random.choice(supported_disease_opts)
     else:
         # Normalize disease name format for consistency

@@ -261,8 +261,8 @@ def generate_unique_patient(disease: str, existing_hashes: set, max_attempts: in
         # Set disease
         session.disease = disease
         
-        # Randomize all fields
-        randomize_inputs(st_mock)
+        # Randomize all fields (but keep disease fixed for batch generation)
+        randomize_inputs(st_mock, randomize_disease=False)
         
         # Randomize from CSV rules for the disease (use normalized name)
         randomize_from_csv_rules(st_mock, csv_disease_name)
@@ -408,45 +408,122 @@ def _build_batch_prompt(session, selected_pattern,
     - 발현시점: {session.onset}
     - 경과: {session.course}
     - 발병 에피소드: {session.get('episode', '특별한 계기 없이 발생')}
-    - 활력징후: BP {session.sbp}/{session.dbp} mmHg, 맥박 {session.pulse_rate}회/분, 체온 {session.temp}°C
-    
+    - 활력징후: BP {session.sbp}/{session.dbp} mmHg, 맥박 {session.pulse_rate}회/분, 체온 {session.temp}°C, 호흡 {session.resp}회/분
+
     ### 2. 병력 및 생활습관
     - 현병력: {session.history_conditions}
     - 약물력: {session.meds_specific}
     - 가족력: {session.family_hx}
+    - 악화요인: {session.get('aggravating_factors', [])}
+    - 완화요인: {session.get('relieving_factors', [])}
     - 음주: {session.social_alcohol_freq}
     - 흡연: {session.social_smoke_daily}개피/일
+    - 운동강도: {session.social_exercise_int}
     - 여성력: {_get_menstrual_info(session)}
     
     ### 3. 배설 및 식사
     - 식사횟수: {session.diet_freq}회/일, {session.diet_regular}
+    - 음수량: {session.water_intake}
     - 대변: {session.stool_freq}, {session.stool_color}, {session.stool_form}
-    - 소변: {session.urine_color}, 야간 {session.urine_freq_night}회
+    - 소변: {session.urine_color}, 주간 {session.urine_freq_day}회, 야간 {session.urine_freq_night}회
     
     ### 4. 수면, 땀, 한열
     - 수면: {session.sleep_hours}시간, {session.sleep_depth}, 기상시 {session.sleep_waking_state}
-    - 땀: {session.sweat_amt}, {session.sweat_area}
+    - 입면장애: {session.insomnia_onset}/5, 중도각성: {session.insomnia_maintain}/5
+    - 땀: {session.sweat_amt}, {session.sweat_area}, 땀흘린후 {session.get('sweat_feeling', 'N/A')}
     - 한열경향: {session.cold_heat_pref}
+    - 음료온도선호: {session.drink_temp}
+    - 수족냉증: {session.get('cold_hands_feet', False)}
     
-    ### 5. 맥진 및 설진
-    - 맥상: {session.get('compound_pulse', '완맥')}
-    - 설질: {session.tongue_color}, {session.tongue_size}
-    - 설태: {session.tongue_coat_color}, {session.tongue_coat_thick}
+    ### 5. 정신상태 및 신체검진
+    - 기억력: {session.memory}, 의욕: {session.motivation}
+    - 스트레스대처력: {session.stress_coping}
+    - 부종: {session.edema}, 멍듦: {session.bruising}
+    - 사지무력감: {session.limb_weakness}
+    - 피부건조도: {session.skin_dry}, 가려움: {session.skin_itch}
+    - 이명강도: {session.tinnitus_sev}/5, 난청: {session.hearing_sev}/5
+    - 어지러움: {session.dizziness_sev}/5
     - 면색: {session.face_color}
     
-    ### 6. 주소증
+    ### 6. 맥진 및 설진
+    - 맥위(부침): {session.pulse_depth}
+    - 맥폭(대세): {session.pulse_width}
+    - 맥력: {session.pulse_strength}
+    - 맥상: {session.pulse_smooth}
+    - 복합맥상: {session.get('compound_pulse', '완맥')}
+    - 설질: {session.tongue_color}, {session.tongue_size}
+    - 설태: {session.tongue_coat_color}, {session.tongue_coat_thick}
+    
+    ### 7. 주소증 (Chief Complaint)
     - 질환명: {session.disease}
     
     **감기 증상:** 발열 {fever_desc}, 오한 {chills_desc}, 콧물 {snot_desc}, 기침 {cough_desc}
     **비염 증상:** 재채기 {sneeze_desc}, 코막힘 {nose_block_desc}, 코가려움 {nose_itch_desc}
     **요통 증상:** 통증강도 {session.pain_sev}/10, 통증양상 {session.get('pain_nature', [])}
     **소화불량 증상:** 복만/복통 {session.pain_sev}/5, 증상 {session.get('dyspepsia_spec', [])}
-    
+
     ## 출력 형식 (JSON)
+    반드시 아래 형식으로 JSON을 생성하세요:
+    
     {{
-      "요약": "환자 요약 (예: 45세 남성, 3일전부터 오한, 발열 호소)",
-      "환자시나리오": "【환자정보】...【주소증】...【발병 에피소드】...【현병력】...【과거력】...【가족력】...【사회력】...【계통적 문진】...【신체검진 소견】...【설진 소견】...【맥진 소견】..."
+      "요약": "환자 요약 (예: 45세 남성, 3일전부터 오한, 발열, 두통 호소)",
+      
+      "환자시나리오": "한의사 관점의 상세 환자 기록. 반드시 다음 형식으로 작성:
+        
+        【환자정보】
+        상기 환자는 XX세 XX 환자로 [직업] 종사자이다. 신장은 XXcm, 체중은 XXkg, BMI는 XX이다.
+        
+        【주소증】
+        [발현시점]부터 [주요증상]을 주소로 내원하였다.
+        
+        【발병 에피소드】
+        [발병 전 상황을 구체적으로 기술]
+        
+        【현병력】
+        [증상의 발생, 경과, 양상, 악화/완화 요인을 상세히 기술]
+        
+        【과거력】
+        [기존 질환, 수술력, 약물력]
+        
+        【가족력】
+        [가족 질환력]
+        
+        【사회력】
+        [직업, 음주, 흡연, 운동 습관]
+        
+        【계통적 문진 (Review of Systems)】
+        - 식욕/소화: [식욕, 소화 상태, 오심/구토]
+        - 대변: [횟수, 성상, 색깔]
+        - 소변: [횟수, 색깔, 야간뇨]
+        - 수면: [수면시간, 질, 입면장애(X/5), 중도각성(X/5)]
+        - 한열: [오한/발열 경향, 수족냉증, 온도 선호]
+        - 땀: [발한 정도, 부위, 야간 발한]
+        - 통증: [부위, 성질, 강도, 빈도]
+        - 정신/정서: [스트레스, 기억력, 의욕]
+        
+        【신체검진 소견】
+        - 활력징후: BP XXX/XX mmHg, 맥박 XX회/분, 체온 XX.X°C, 호흡 XX회/분
+        - 전신 상태: [피로감, 부종, 피부 상태]
+        - 면색: [창백/홍조/황색/정상 등]
+        
+        【설진 소견】
+        - 설질: [색깔, 크기]
+        - 설태: [색깔, 두께]
+        
+        【맥진 소견】
+        - 맥위(부침): [부/중/침]
+        - 맥폭(대세): [세/대/홍]
+        - 맥력: [유력/무력]
+        - 맥상: [활/삽/긴/완 등]"
     }}
+    
+    ## 중요 지침
+    1. 모든 출력은 한국어로 작성
+    2. 의사 관점으로 작성 (환자 시점 ❌)
+    3. 한의학 전문용어 적극 사용 (惡寒, 發熱, 無汗 등)
+    4. ⚠️ 변증, 치법, 처방은 절대 생성하지 마세요!
+    5. 객관적인 환자 소견만 기술하세요
+    6. 각 【섹션】 사이에는 반드시 줄바꿈을 넣어 구분하세요
     """
 
 

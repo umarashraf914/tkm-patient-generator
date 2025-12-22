@@ -332,7 +332,6 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
         PDF file as bytes
     """
     import pathlib
-    import shutil
     import tempfile
     
     # Try to create PDF with Unicode support
@@ -340,39 +339,62 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
     
+    # Temp directory for font (writable on all platforms)
+    temp_dir = pathlib.Path(tempfile.gettempdir())
+    temp_font_path = temp_dir / "NanumGothic.ttf"
+    
     # Get the directory where this script is located
     script_dir = pathlib.Path(__file__).parent.resolve()
     
-    # Korean font paths to check
-    font_paths = [
-        script_dir / "fonts" / "NanumGothic.ttf",  # Bundled font
-        pathlib.Path("fonts/NanumGothic.ttf").resolve(),  # Relative path
-        pathlib.Path.cwd() / "fonts" / "NanumGothic.ttf",  # Current working directory
-        pathlib.Path("/app/fonts/NanumGothic.ttf"),  # Streamlit Cloud path
-        pathlib.Path("/mount/src/tkm-patient-generator/fonts/NanumGothic.ttf"),  # Streamlit Cloud mount
-        pathlib.Path("C:/Windows/Fonts/malgun.ttf"),  # Windows
-        pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),  # Windows
+    # Korean font source paths to check (in priority order)
+    font_sources = [
+        # System-installed fonts (via packages.txt on Streamlit Cloud)
+        pathlib.Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+        pathlib.Path("/usr/share/fonts/opentype/nanum/NanumGothic.ttf"),
+        # Bundled font (local development)
+        script_dir / "fonts" / "NanumGothic.ttf",
+        pathlib.Path.cwd() / "fonts" / "NanumGothic.ttf",
+        # Windows system fonts
+        pathlib.Path("C:/Windows/Fonts/malgun.ttf"),
+        pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),
     ]
     
     font_added = False
     
-    for font_path in font_paths:
-        if font_path.exists():
-            try:
-                # Copy font to temp directory to avoid permission issues on Streamlit Cloud
-                temp_dir = pathlib.Path(tempfile.gettempdir())
-                temp_font_path = temp_dir / "NanumGothic.ttf"
-                
-                # Only copy if not already there or if source is newer
-                if not temp_font_path.exists():
-                    shutil.copy2(str(font_path), str(temp_font_path))
-                
-                pdf.add_font("Korean", "", str(temp_font_path), uni=True)
-                pdf.set_font("Korean", "", 12)
-                font_added = True
-                break
-            except Exception:
-                continue
+    # First check if font already in temp (from previous run)
+    if temp_font_path.exists():
+        try:
+            pdf.add_font("Korean", "", str(temp_font_path), uni=True)
+            pdf.set_font("Korean", "", 12)
+            font_added = True
+        except Exception:
+            temp_font_path.unlink(missing_ok=True)
+    
+    # If not in temp, try each source
+    if not font_added:
+        for font_path in font_sources:
+            if font_path.exists():
+                try:
+                    # Try using font directly first (works for system fonts)
+                    pdf.add_font("Korean", "", str(font_path), uni=True)
+                    pdf.set_font("Korean", "", 12)
+                    font_added = True
+                    break
+                except PermissionError:
+                    # If permission denied, try copying to temp
+                    try:
+                        with open(font_path, 'rb') as src:
+                            font_data = src.read()
+                        with open(temp_font_path, 'wb') as dst:
+                            dst.write(font_data)
+                        pdf.add_font("Korean", "", str(temp_font_path), uni=True)
+                        pdf.set_font("Korean", "", 12)
+                        font_added = True
+                        break
+                    except Exception:
+                        continue
+                except Exception:
+                    continue
     
     if not font_added:
         # Fallback to ASCII version if no Korean font found

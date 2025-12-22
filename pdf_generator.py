@@ -333,6 +333,7 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     """
     import os
     import pathlib
+    import streamlit as st
     
     # Try to create PDF with Unicode support
     pdf = FPDF()
@@ -347,6 +348,8 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
         script_dir / "fonts" / "NanumGothic.ttf",  # Bundled font (primary for cloud)
         pathlib.Path("fonts/NanumGothic.ttf").resolve(),  # Relative path
         pathlib.Path.cwd() / "fonts" / "NanumGothic.ttf",  # Current working directory
+        pathlib.Path("/mount/src/tkm-patient-generator/fonts/NanumGothic.ttf"),  # Streamlit Cloud mount path
+        pathlib.Path("/app/fonts/NanumGothic.ttf"),  # Alternative cloud path
         pathlib.Path("C:/Windows/Fonts/malgun.ttf"),  # Windows Malgun Gothic
         pathlib.Path("C:/Windows/Fonts/NanumGothic.ttf"),  # Windows NanumGothic
         pathlib.Path("/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),  # Linux
@@ -355,7 +358,10 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     
     font_added = False
     used_font_path = None
+    debug_info = []
+    
     for font_path in font_paths:
+        debug_info.append(f"{font_path}: exists={font_path.exists()}")
         if font_path.exists():
             try:
                 pdf.add_font("Korean", "", str(font_path), uni=True)
@@ -363,11 +369,16 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
                 font_added = True
                 used_font_path = str(font_path)
                 break
-            except Exception:
+            except Exception as e:
+                debug_info.append(f"  -> Failed to load: {e}")
                 continue
     
     if not font_added:
-        # Fallback to ASCII version if no Korean font found
+        # Show error in Streamlit instead of silently falling back
+        error_msg = f"Korean font not found! Checked paths:\n" + "\n".join(debug_info)
+        st.error(error_msg)
+        st.info(f"Script dir: {script_dir}, CWD: {pathlib.Path.cwd()}")
+        # Still fallback but now we know why
         return generate_patient_pdf(summary, scenario, patient_info)
     
     # Title

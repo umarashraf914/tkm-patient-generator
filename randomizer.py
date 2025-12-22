@@ -1108,6 +1108,9 @@ def randomize_inputs(st):
     # ===========================================
     # 8. PULSE & TONGUE (맥진 및 설진)
     # ===========================================
+    # 맥진: 질환별 허용 맥 규칙 적용 (pulse_rules.py에서 처리)
+    # 기본값 설정 (apply_pulse_rules에서 덮어씀)
+    session.compound_pulse = "완맥"  # 복합맥 (출력용)
     session.pulse_depth = random.choice(["부맥", "중맥", "침맥"])
     session.pulse_width = random.choice(["세맥", "대맥", "홍맥"])
     session.pulse_length = random.choice(["단맥", "장맥", "장맥"])

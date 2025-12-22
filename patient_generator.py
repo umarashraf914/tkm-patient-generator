@@ -224,10 +224,13 @@ def _build_generation_prompt(session, selected_pattern,
     - 면색: {session.face_color}
     
     ### 6. 맥진 및 설진 소견
+    【맥진소견】
+    - 복합맥: {session.get('compound_pulse', '완맥')}
     - 맥위(부침): {session.pulse_depth}
     - 맥폭(대세): {session.pulse_width}
     - 맥력: {session.pulse_strength}
     - 맥상: {session.pulse_smooth}
+    【설진소견】
     - 설질: {session.tongue_color}, {session.tongue_size}
     - 설태: {session.tongue_coat_color}, {session.tongue_coat_thick}
     

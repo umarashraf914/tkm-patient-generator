@@ -1149,7 +1149,15 @@ def randomize_inputs(st):
         "기능성소화불량",
         "요통"
     ]
-    session.disease = random.choice(supported_disease_opts)
+    # Only set disease if not already set (allows batch generator to pre-set disease)
+    if not hasattr(session, 'disease') or session.disease is None or session.disease == "":
+        session.disease = random.choice(supported_disease_opts)
+    else:
+        # Normalize disease name format for consistency
+        if session.disease == "감기":
+            session.disease = "감기/급성상기도감염"
+        elif session.disease == "기능성 소화불량":
+            session.disease = "기능성소화불량"
     
     # Check for disease type using Korean keywords
     if "감기" in session.disease:

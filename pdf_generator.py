@@ -414,12 +414,13 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
     # Line
     pdf.set_draw_color(100, 100, 100)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(5)
+    pdf.ln(8)
     
     # Patient info
     if patient_info:
-        pdf.set_font('Korean', '', 12)
-        pdf.cell(0, 8, '환자 기본정보', new_x='LMARGIN', new_y='NEXT')
+        pdf.set_font('Korean', '', 14)
+        pdf.cell(0, 10, '■ 환자 기본정보', new_x='LMARGIN', new_y='NEXT')
+        pdf.ln(3)
         pdf.set_font('Korean', '', 10)
         
         info_items = [
@@ -433,31 +434,58 @@ def generate_patient_pdf_korean(summary: str, scenario: str, patient_info: dict 
         ]
         
         for label, value in info_items:
-            pdf.cell(40, 6, f'{label}:', new_x='RIGHT')
-            pdf.cell(0, 6, str(value), new_x='LMARGIN', new_y='NEXT')
+            pdf.cell(5, 7, '', new_x='RIGHT')  # Indent
+            pdf.cell(35, 7, f'• {label}:', new_x='RIGHT')
+            pdf.cell(0, 7, str(value), new_x='LMARGIN', new_y='NEXT')
         
-        pdf.ln(5)
+        pdf.ln(8)
+        pdf.set_draw_color(150, 150, 150)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-        pdf.ln(5)
+        pdf.ln(8)
     
     # Summary
-    pdf.set_font('Korean', '', 12)
-    pdf.cell(0, 8, '요약', new_x='LMARGIN', new_y='NEXT')
+    pdf.set_font('Korean', '', 14)
+    pdf.cell(0, 10, '■ 요약', new_x='LMARGIN', new_y='NEXT')
+    pdf.ln(3)
     pdf.set_font('Korean', '', 10)
-    pdf.multi_cell(0, 6, summary)
+    pdf.multi_cell(0, 7, summary)
+    pdf.ln(8)
+    
+    # Scenario - with improved section formatting
+    pdf.set_draw_color(150, 150, 150)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(8)
+    pdf.set_font('Korean', '', 14)
+    pdf.cell(0, 10, '■ 환자 시나리오', new_x='LMARGIN', new_y='NEXT')
     pdf.ln(5)
-    
-    # Scenario
-    pdf.set_font('Korean', '', 12)
-    pdf.cell(0, 8, '환자 시나리오', new_x='LMARGIN', new_y='NEXT')
     pdf.set_font('Korean', '', 10)
     
+    # Process scenario with improved formatting
     paragraphs = scenario.split('\n')
     for para in paragraphs:
         para = para.strip()
         if para:
-            pdf.multi_cell(0, 6, para)
-            pdf.ln(2)
+            # Check if this is a section header (starts with 【 or [ or numbered section)
+            if para.startswith('【') or para.startswith('[') or para.startswith('#'):
+                pdf.ln(6)  # Extra space before section headers
+                pdf.set_font('Korean', '', 12)
+                pdf.multi_cell(0, 8, para)
+                pdf.set_font('Korean', '', 10)
+                pdf.ln(3)
+            # Check if this is a bullet point item
+            elif para.startswith('-') or para.startswith('•') or para.startswith('·'):
+                pdf.cell(5, 7, '', new_x='RIGHT')  # Indent
+                pdf.multi_cell(0, 7, para)
+                pdf.ln(1)
+            # Check if this is a sub-header or category
+            elif ':' in para and len(para.split(':')[0]) < 20:
+                pdf.set_font('Korean', '', 10)
+                pdf.cell(5, 7, '', new_x='RIGHT')  # Small indent
+                pdf.multi_cell(0, 7, para)
+                pdf.ln(2)
+            else:
+                pdf.multi_cell(0, 7, para)
+                pdf.ln(3)
     
     # Convert bytearray to bytes for Streamlit
     output = pdf.output()

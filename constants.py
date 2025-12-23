@@ -97,7 +97,7 @@ DISEASE_PATTERNS = {
     "요통": {
         "kcd_code": "M54",
         "patterns": [
-            # Page 23: 질병별 변증유형 분류 - 요통
+            # Page 23: 질병별 변증유형 분류 - 요통 (Original prescriptions - correct)
             {"id": "BP_Cold", "name": "한증형 (寒證型)", "prescriptions": ["오적산"]},
             {"id": "BP_Heat", "name": "열증형 (熱證型)", "prescriptions": ["이묘창백산", "칠묘창백산"]},
             {"id": "BP_QiDef", "name": "기허형 (氣虛型)", "prescriptions": ["두충환", "사군자탕"]},
@@ -108,23 +108,23 @@ DISEASE_PATTERNS = {
             {"id": "BP_QiStag", "name": "기체형 (氣滯型)", "prescriptions": ["칠기탕", "소간해울탕"]},
             {"id": "BP_BloodStasis", "name": "어혈형 (瘀血型)", "prescriptions": ["서근산", "독활탕"]}
         ],
-        "note": "요통과 소화불량의 경우 질병에 따라 증형이 달라지는 어려움을 배제하기 위해 팔강변증의 카테고리에서 한열허실을 구분하여 한, 열, 기허, 양허, 음허, 기체, 담음, 식적의 변증형을 설정 (Page 23)"
+        "note": "요통 - 질병별 변증유형 분류 (Page 23)"
     },
     "기능성소화불량": {
         "kcd_code": "K30",
         "patterns": [
-            # Page 23: 질병별 변증유형 분류 - 기능성소화불량 (요통과 동일)
-            {"id": "DY_Cold", "name": "한증형 (寒證型)", "prescriptions": ["오적산"]},
-            {"id": "DY_Heat", "name": "열증형 (熱證型)", "prescriptions": ["이묘창백산", "칠묘창백산"]},
-            {"id": "DY_QiDef", "name": "기허형 (氣虛型)", "prescriptions": ["두충환", "사군자탕"]},
-            {"id": "DY_YangDef", "name": "양허형 (陽虛型)", "prescriptions": ["팔미지황원"]},
-            {"id": "DY_YinDef", "name": "음허형 (陰虛型)", "prescriptions": ["육미지황원"]},
-            {"id": "DY_FoodStag", "name": "식적형 (食積型)", "prescriptions": ["소적건비환"]},
-            {"id": "DY_Phlegm", "name": "담음형 (痰飮型)", "prescriptions": ["이진탕", "궁하탕"]},
-            {"id": "DY_QiStag", "name": "기체형 (氣滯型)", "prescriptions": ["칠기탕", "소간해울탕"]},
-            {"id": "DY_BloodStasis", "name": "어혈형 (瘀血型)", "prescriptions": ["서근산", "독활탕"]}
+            # Page 23: 질병별 변증유형 분류 - 기능성소화불량 (Professor Lee's corrected prescriptions)
+            {"id": "DY_Cold", "name": "한증형 (寒證型)", "prescriptions": ["이중탕", "안중산"]},
+            {"id": "DY_Heat", "name": "열증형 (熱證型)", "prescriptions": ["황련해독탕", "반하사심탕"]},
+            {"id": "DY_QiDef", "name": "기허형 (氣虛型)", "prescriptions": ["사군자탕", "육군자탕"]},
+            {"id": "DY_YangDef", "name": "양허형 (陽虛型)", "prescriptions": ["사역탕"]},
+            {"id": "DY_YinDef", "name": "음허형 (陰虛型)", "prescriptions": ["익위탕", "마자인환"]},
+            {"id": "DY_FoodStag", "name": "식적형 (食積型)", "prescriptions": ["내소화중탕", "지실소비환"]},
+            {"id": "DY_Phlegm", "name": "담음형 (痰飮型)", "prescriptions": ["이진탕", "궁하탕", "평위산"]},
+            {"id": "DY_QiStag", "name": "기체형 (氣滯型)", "prescriptions": ["소요산", "시호소간탕"]},
+            {"id": "DY_BloodStasis", "name": "어혈형 (瘀血型)", "prescriptions": ["단삼음", "혈부축어탕"]}
         ],
-        "note": "요통과 동일한 한열허실 구분 적용 (Page 23)"
+        "note": "기능성소화불량 - 질병별 변증유형 분류 (Professor Lee's corrected prescriptions)"
     }
 }
 

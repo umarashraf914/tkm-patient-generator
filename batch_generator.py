@@ -722,9 +722,17 @@ def batch_generate(diseases: list = None, cases_per_disease: int = None, start_f
             patterns = dist["patterns"]
             cases_per_pattern = dist["cases_per_pattern"]
             
+            # Track PDFs by pattern for per-pattern merging
+            pattern_pdf_files = {}
+            
             case_num = 0
             for pattern_idx, pattern_name in enumerate(patterns):
                 print(f"\n  📌 변증 {pattern_idx + 1}/{len(patterns)}: {pattern_name} ({cases_per_pattern}개)")
+                
+                # Create pattern subfolder
+                pattern_folder = disease_folder / pattern_name
+                pattern_folder.mkdir(exist_ok=True)
+                pattern_pdf_files[pattern_name] = []
                 
                 for i in range(cases_per_pattern):
                     case_num += 1
@@ -749,17 +757,14 @@ def batch_generate(diseases: list = None, cases_per_disease: int = None, start_f
                     
                     print(f"✓ ", end="")
                     
-                    # Create PDF with pattern name in filename
-                    # Get short pattern name for filename
-                    pattern_short = pattern_name.split()[0].replace("(", "").replace(")", "")
-                    if len(pattern_short) > 6:
-                        pattern_short = pattern_short[:6]
-                    pdf_filename = f"{disease.replace(' ', '')}_{pattern_short}_{i+1:03d}.pdf"
-                    pdf_path = disease_folder / pdf_filename
+                    # Create PDF in pattern subfolder
+                    pdf_filename = f"{disease.replace(' ', '')}_{pattern_name}_{i+1:03d}.pdf"
+                    pdf_path = pattern_folder / pdf_filename
                     
                     print("PDF...", end=" ")
                     if create_patient_pdf(session, summary, scenario, pdf_path):
                         pdf_files.append(pdf_path)
+                        pattern_pdf_files[pattern_name].append(pdf_path)
                         total_generated += 1
                         print(f"✓ {pdf_filename}")
                     else:

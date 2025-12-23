@@ -911,8 +911,8 @@ def randomize_inputs(st, randomize_disease=True):
     session.onset = random.choice(["1일 전", "2-3일 전", "1주 전", "만성 3개월 이상"])
     session.course = random.choice(["악화중", "호전중", "비슷/오르내림"])
     
-    # 발병 에피소드 생성 (Episode generation)
-    session.episode = _generate_episode(session.disease if hasattr(session, 'disease') else "감기")
+    # 발병 에피소드는 질환이 선택된 후에 생성됨 (아래 참조)
+    # Episode will be generated after disease is selected (see below)
     
     session.history_conditions = random.sample(["고혈압", "당뇨", "이상지질혈증", "기타"], k=random.randint(0, 2))
     log_value_set("history_conditions", session.history_conditions, "HARDCODED (will be overwritten by CSV)")
@@ -1189,6 +1189,24 @@ def randomize_inputs(st, randomize_disease=True):
         session.pattern_idx = random.randint(0, num_patterns - 1)
         # Try to use CSV-based randomization for Back Pain
         _apply_csv_backpain_randomization(st)
+    
+    # ===========================================
+    # 10.5 발병 에피소드 생성 (Episode generation)
+    # 질환이 선택된 후에 생성해야 올바른 에피소드가 매칭됨
+    # ===========================================
+    # Map disease names to episode template keys
+    if "감기" in session.disease:
+        episode_disease_key = "감기"
+    elif "비염" in session.disease:
+        episode_disease_key = "알레르기비염"
+    elif "소화불량" in session.disease:
+        episode_disease_key = "기능성소화불량"
+    elif "요통" in session.disease:
+        episode_disease_key = "요통"
+    else:
+        episode_disease_key = "감기"  # fallback
+    
+    session.episode = _generate_episode(episode_disease_key)
     
     # ===========================================
     # 11. APPLY CONSTRAINT RULES

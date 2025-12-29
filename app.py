@@ -34,6 +34,13 @@ st.set_page_config(page_title="한의 임상시나리오 생성기", layout="wid
 # --- INITIALIZE SESSION STATE ---
 init_session_state(st)
 
+# --- TRACK PREVIOUS DISEASE/PATTERN FOR AUTO-RANDOMIZATION ---
+# Initialize tracking variables if not exists
+if '_prev_disease' not in st.session_state:
+    st.session_state._prev_disease = st.session_state.get('disease', '')
+if '_prev_pattern_idx' not in st.session_state:
+    st.session_state._prev_pattern_idx = st.session_state.get('pattern_idx', 0)
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -105,8 +112,23 @@ with st.sidebar:
                 st.markdown("**제외:**")
                 for excl in kcd_info['exclusions']:
                     st.markdown(f"- ❌ {excl}")
-    
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTO-RANDOMIZE ON DISEASE/PATTERN CHANGE
+# ═══════════════════════════════════════════════════════════════════════════════
+# Check if disease or pattern changed and auto-randomize
+disease_changed = st.session_state.disease != st.session_state._prev_disease
+pattern_changed = st.session_state.pattern_idx != st.session_state._prev_pattern_idx
+
+if disease_changed or pattern_changed:
+    # Update tracking variables
+    st.session_state._prev_disease = st.session_state.disease
+    st.session_state._prev_pattern_idx = st.session_state.pattern_idx
+    
+    # Auto-randomize with the new disease/pattern (but keep disease and pattern fixed)
+    randomize_inputs(st, randomize_disease=False)
+    st.rerun()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MAIN CONTENT AREA

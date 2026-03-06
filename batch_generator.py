@@ -52,7 +52,7 @@ logging.getLogger("fontTools.subset").setLevel(logging.ERROR)
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-import google.generativeai as genai
+from google import genai
 from fpdf import FPDF
 
 # Import project modules
@@ -64,7 +64,7 @@ from constants import DISEASE_PATTERNS
 from pdf_generator import generate_patient_pdf_korean
 
 # Gemini model name
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -366,11 +366,11 @@ def setup_gemini():
         print("   Set it as environment variable or create .env file")
         sys.exit(1)
     
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel(GEMINI_MODEL)
+    client = genai.Client(api_key=api_key)
+    return client
 
 
-def generate_scenario_with_gemini(model, session: MockSessionState) -> tuple[str, str]:
+def generate_scenario_with_gemini(client, session: MockSessionState) -> tuple[str, str]:
     """Generate patient scenario using Gemini API."""
     
     # Build prompt using same logic as patient_generator.py
@@ -422,7 +422,11 @@ def generate_scenario_with_gemini(model, session: MockSessionState) -> tuple[str
     
     # Call Gemini
     try:
-        response = model.generate_content(system_prompt, generation_config={"response_mime_type": "application/json"})
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=system_prompt,
+            config={'response_mime_type': 'application/json'}
+        )
         data = json.loads(response.text)
         
         summary = data.get('요약', '환자 시나리오')

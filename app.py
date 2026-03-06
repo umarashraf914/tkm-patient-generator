@@ -8,7 +8,7 @@ Updated UI with sidebar controls and main content area with collapsible sections
 """
 
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from config import API_KEY, init_session_state
 from constants import (
     KCD_CODES, DISEASE_PATTERNS, FREQUENT_TKM_SYMPTOMS, FREQUENT_COMORBIDITIES,
@@ -26,7 +26,7 @@ from pdf_generator import generate_patient_pdf_korean
 if API_KEY == "PASTE_YOUR_API_KEY_HERE" or not API_KEY:
     st.error("⚠️ Please open config.py and paste your API Key!")
 else:
-    genai.configure(api_key=API_KEY)
+    client = genai.Client(api_key=API_KEY)
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(page_title="한의 임상시나리오 생성기", layout="wide")
@@ -401,7 +401,7 @@ with st.expander("➤ 추가 증상 및 동반질환", expanded=False):
 # ═══════════════════════════════════════════════════════════════════════════════
 st.markdown("---")
 if st.button("✨ 가상환자 시나리오 생성", type="primary", use_container_width=True):
-    generate_patient(st, genai)
+    generate_patient(st, client)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PDF DOWNLOAD BUTTON (shows after scenario is generated)

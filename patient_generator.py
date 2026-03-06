@@ -9,13 +9,13 @@ from data_mappings import get_desc
 from constants import DISEASE_PATTERNS
 
 
-def generate_patient(st, genai):
+def generate_patient(st, client):
     """
     Generate a virtual patient scenario using LLM.
     
     Args:
         st: Streamlit module
-        genai: Google Generative AI module
+        client: Google GenAI Client instance
     
     All 4 diseases are now supported:
     - 감기 (Common Cold)
@@ -34,9 +34,7 @@ def generate_patient(st, genai):
     # Streamlit prevents modifying widget-bound session state after render
     # ═══════════════════════════════════════════════════════════════════
     
-    try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-    except:
+    if not client:
         st.error("API 키 오류. Streamlit Secrets에서 확인하세요.")
         return
     
@@ -97,7 +95,11 @@ def generate_patient(st, genai):
     
     with st.spinner('가상환자 시나리오 생성 중...'):
         try:
-            response = model.generate_content(system_prompt, generation_config={"response_mime_type": "application/json"})
+            response = client.models.generate_content(
+                model='gemini-2.5-flash',
+                contents=system_prompt,
+                config={'response_mime_type': 'application/json'}
+            )
             data = json.loads(response.text)
             st.success("✅ 환자 시나리오 생성 완료")
             

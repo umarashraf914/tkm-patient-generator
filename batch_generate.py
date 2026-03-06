@@ -36,8 +36,11 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-import google.generativeai as genai
+from google import genai
 from fpdf import FPDF
+
+# Global GenAI client
+genai_client = None
 
 # Import from existing modules
 from config import DEFAULT_VALUES
@@ -149,8 +152,10 @@ def generate_patient_data(disease: str, existing_hashes: set) -> tuple:
 def call_gemini_api(prompt: str) -> str:
     """Call Gemini API to generate patient scenario."""
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(prompt)
+        response = genai_client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         return response.text
     except Exception as e:
         print(f"  ⚠️ Gemini API 오류: {e}")
@@ -265,7 +270,8 @@ def generate_for_disease(disease: str, api_key: str):
     generated_pdfs = []
     
     # Configure Gemini
-    genai.configure(api_key=api_key)
+    global genai_client
+    genai_client = genai.Client(api_key=api_key)
     
     for i in range(1, PATIENTS_PER_DISEASE + 1):
         print(f"\n[{i}/{PATIENTS_PER_DISEASE}] 환자 생성 중...")
